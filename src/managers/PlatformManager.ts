@@ -5,7 +5,8 @@ import { PlatformEventType } from '../types'
 export default class PlatformManager {
   private scene: Phaser.Scene
   private platforms: Phaser.Physics.Arcade.StaticGroup
-  private platformData: Map<Phaser.Physics.Arcade.Sprite, Platform> = new Map()
+  private platformData: Map<any, Platform> = new Map()
+  private platformGraphics: Map<any, Phaser.GameObjects.Graphics> = new Map()
   private currentPlatforms: Platform[] = []
 
   constructor(scene: Phaser.Scene) {
@@ -16,18 +17,23 @@ export default class PlatformManager {
   createPlatforms(platforms: Platform[]) {
     this.currentPlatforms = platforms
     this.platformData.clear()
+    this.platformGraphics.clear()
 
     platforms.forEach(platform => {
-      const sprite = this.platforms.create(platform.x, platform.y, '')
-      sprite.setScale(platform.width / 64, platform.height / 32)
-      sprite.setDisplayOrigin(0, 0)
-      sprite.body?.setSize(platform.width, platform.height)
-
-      // Color based on event type
       const color = this.getColorForEventType(platform.eventType)
-      sprite.setFillStyle(color)
 
-      this.platformData.set(sprite as any, platform)
+      // Create graphics for visual
+      const graphics = this.scene.add.graphics()
+      graphics.fillStyle(color, 1)
+      graphics.fillRect(platform.x - platform.width / 2, platform.y, platform.width, platform.height)
+
+      // Create physics body
+      const sprite = this.platforms.create(platform.x, platform.y, '')
+      sprite.body?.setSize(platform.width, platform.height)
+      sprite.setVisible(false)
+
+      this.platformData.set(sprite, platform)
+      this.platformGraphics.set(sprite, graphics)
     })
   }
 

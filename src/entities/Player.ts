@@ -18,14 +18,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this)
     scene.physics.add.existing(this)
 
-    // Create visual representation
-    const graphics = scene.make.graphics({ x, y, add: false })
-    graphics.fillStyle(0xff0000, 1)
-    graphics.fillRect(-15, -20, 30, 40)
+    // Create visual representation - rectangle
+    const graphics = scene.make.graphics({ x: 0, y: 0, add: false })
+    graphics.fillStyle(0xFF0000, 1)
+    graphics.fillRect(0, 0, 30, 40)
     graphics.generateTexture('player', 30, 40)
     graphics.destroy()
 
     this.setTexture('player')
+    this.setOrigin(0.5, 0.5)
     this.setCollideWorldBounds(true)
     this.setBounce(0.1)
     this.setDrag(100)

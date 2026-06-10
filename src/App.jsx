@@ -7,7 +7,7 @@ export default function App() {
   useEffect(() => {
     setTimeout(() => {
       const config = {
-        type: Phaser.WEBGL,
+        type: Phaser.CANVAS,
         width: 800,
         height: 600,
         canvas: document.getElementById('game-canvas'),

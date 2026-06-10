@@ -5,8 +5,9 @@ import LevelGenerator from '../managers/LevelGenerator'
 import PlatformManager from '../managers/PlatformManager'
 import EventManager from '../managers/EventManager'
 import EventPopup from '../ui/EventPopup'
-import { createStarterPokemon } from '../entities/PokemonFactory'
+import { createStarterPokemon, POKEMON_LIST } from '../entities/PokemonFactory'
 import { Pokemon } from '../entities/Pokemon'
+import { preloadSprites } from '../utils/SpriteLoader'
 
 export default class GameScene extends Phaser.Scene {
   private player?: Player
@@ -23,6 +24,12 @@ export default class GameScene extends Phaser.Scene {
 
   constructor() {
     super('GameScene')
+  }
+
+  preload() {
+    const ids = POKEMON_LIST.map(p => p.dexId)
+    preloadSprites(this, ids, false)
+    preloadSprites(this, ids, true)
   }
 
   create() {

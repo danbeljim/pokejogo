@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { EventResult } from '../managers/EventManager'
+import { spriteKey } from '../entities/PokemonFactory'
 
 export default class EventPopup {
   private scene: Phaser.Scene
@@ -37,7 +38,20 @@ export default class EventPopup {
       color: '#CCCCCC'
     }).setOrigin(0.5)
 
-    this.container = this.scene.add.container(0, 0, [bg, title, message, continueText])
+    const items: Phaser.GameObjects.GameObject[] = [bg, title, message, continueText]
+
+    // Show sprite for caught or enemy pokemon
+    const dexId = result.pokemonCaught?.id || result.enemyTeam?.[0]?.id
+    if (dexId) {
+      const key = spriteKey(dexId, false)
+      if (this.scene.textures.exists(key)) {
+        const sprite = this.scene.add.image(400, 350, key)
+        sprite.setScale(3)
+        items.push(sprite)
+      }
+    }
+
+    this.container = this.scene.add.container(0, 0, items)
     this.visible = true
 
     const spaceKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)

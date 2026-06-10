@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { Pokemon } from '../entities/Pokemon'
+import { spriteKey } from '../entities/PokemonFactory'
 
 export interface BattleData {
   playerTeam: Pokemon[]
@@ -51,8 +52,8 @@ export default class BattleScene extends Phaser.Scene {
       color: '#FFD700'
     }).setOrigin(0.5)
 
-    // Enemy (top)
-    this.drawPokemon(550, 180, 0xFF6B6B, this.enemyPokemon)
+    // Enemy (top right) - front sprite
+    this.drawSprite(600, 200, this.enemyPokemon, false)
     this.enemyHpText = this.add.text(400, 130,
       `${this.enemyPokemon.name} Lv.${this.enemyPokemon.level}`, {
       font: '16px Arial',
@@ -60,9 +61,9 @@ export default class BattleScene extends Phaser.Scene {
     })
     this.enemyHpBar = this.add.graphics()
 
-    // Player (bottom)
-    this.drawPokemon(250, 380, 0x4ECDC4, this.playerPokemon)
-    this.playerHpText = this.add.text(100, 330,
+    // Player (bottom left) - back sprite
+    this.drawSprite(200, 380, this.playerPokemon, true)
+    this.playerHpText = this.add.text(80, 330,
       `${this.playerPokemon.name} Lv.${this.playerPokemon.level}`, {
       font: '16px Arial',
       color: '#ffffff'
@@ -81,12 +82,27 @@ export default class BattleScene extends Phaser.Scene {
     this.drawActions()
   }
 
-  private drawPokemon(x: number, y: number, color: number, _pokemon: Pokemon) {
-    const g = this.add.graphics()
-    g.fillStyle(color, 1)
-    g.fillCircle(x, y, 40)
-    g.lineStyle(3, 0xffffff, 1)
-    g.strokeCircle(x, y, 40)
+  private currentSprites: Phaser.GameObjects.Image[] = []
+
+  private drawSprite(x: number, y: number, pokemon: Pokemon, back: boolean) {
+    const key = spriteKey(pokemon.id, back)
+    if (this.textures.exists(key)) {
+      const sprite = this.add.image(x, y, key)
+      sprite.setScale(3)
+      sprite.setOrigin(0.5, 0.5)
+      this.currentSprites.push(sprite)
+    } else {
+      const g = this.add.graphics()
+      g.fillStyle(back ? 0x4ECDC4 : 0xFF6B6B, 1)
+      g.fillCircle(x, y, 40)
+      g.lineStyle(3, 0xffffff, 1)
+      g.strokeCircle(x, y, 40)
+    }
+  }
+
+  private clearSprites() {
+    this.currentSprites.forEach(s => s.destroy())
+    this.currentSprites = []
   }
 
   private updateHpBars() {
@@ -202,6 +218,9 @@ export default class BattleScene extends Phaser.Scene {
       this.enemyPokemon = this.battleData.enemyTeam[this.enemyIdx]
       this.time.delayedCall(1000, () => {
         this.log(`Enemy sent out ${this.enemyPokemon.name}!`)
+        this.clearSprites()
+        this.drawSprite(600, 200, this.enemyPokemon, false)
+        this.drawSprite(200, 380, this.playerPokemon, true)
         this.updateHpBars()
         this.turnLock = false
       })
@@ -219,6 +238,9 @@ export default class BattleScene extends Phaser.Scene {
       this.playerPokemon = this.battleData.playerTeam[this.playerIdx]
       this.time.delayedCall(1000, () => {
         this.log(`You sent out ${this.playerPokemon.name}!`)
+        this.clearSprites()
+        this.drawSprite(600, 200, this.enemyPokemon, false)
+        this.drawSprite(200, 380, this.playerPokemon, true)
         this.updateHpBars()
         this.drawActions()
         this.turnLock = false

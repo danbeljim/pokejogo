@@ -10,7 +10,7 @@ page.on('console', m => {
 })
 
 await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' })
-await page.waitForTimeout(2000)
+await page.waitForTimeout(8000)
 await page.screenshot({ path: 'game.png' })
 
 console.log('ERRORS:', JSON.stringify(errors, null, 2))

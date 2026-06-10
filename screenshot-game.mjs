@@ -6,8 +6,9 @@ const page = await browser.newPage({ viewport: { width: 1024, height: 768 } })
 const errors = []
 page.on('pageerror', e => errors.push('PAGE: ' + e.message))
 page.on('console', m => {
-  if (m.type() === 'error') errors.push('CONSOLE: ' + m.text())
+  if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type().toUpperCase()}: ${m.text()}`)
 })
+page.on('requestfailed', r => errors.push('REQFAIL: ' + r.url() + ' ' + r.failure()?.errorText))
 
 await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' })
 await page.waitForTimeout(2000)

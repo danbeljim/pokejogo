@@ -36,7 +36,7 @@ export default class GameScene extends Phaser.Scene {
     preloadSprites(this, ids, false)
     preloadSprites(this, ids, true)
     preloadItemSprites(this)
-    this.generateTallGrassTexture()
+    this.load.image('tall-grass', '/assets/hierba.jpg')
 
     // Trainer icon
     if (!this.textures.exists(spriteKey(TRAINER_ICON_DEX, false))) {
@@ -55,6 +55,7 @@ export default class GameScene extends Phaser.Scene {
   create() {
     const currentMap = this.mapManager.getCurrentMap()
     this.cameras.main.setBackgroundColor(currentMap.bgColor)
+    this.createGrassTileFromImage()
 
     this.drawThemedBackground(currentMap)
 
@@ -74,6 +75,16 @@ export default class GameScene extends Phaser.Scene {
 
     this.updateHud()
     this.drawLegend()
+  }
+
+  private createGrassTileFromImage() {
+    if (this.textures.exists('tall-grass-tile') || !this.textures.exists('tall-grass')) return
+    const rt = this.add.renderTexture(0, 0, 100, 100).setVisible(false)
+    const src = this.add.image(0, 0, 'tall-grass').setOrigin(0, 0).setVisible(false)
+    rt.draw(src, 0, 0)
+    rt.saveTexture('tall-grass-tile')
+    src.destroy()
+    rt.destroy()
   }
 
   private generateTallGrassTexture() {

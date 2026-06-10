@@ -142,8 +142,8 @@ export default class PlatformManager {
         scale = 1.8
         break
       case PlatformEventType.WILD_POKEMON:
-        key = 'tall-grass'
-        scale = 1.1
+        key = this.scene.textures.exists('tall-grass-tile') ? 'tall-grass-tile' : 'tall-grass'
+        scale = 0.5
         break
       case PlatformEventType.TRAINER_BATTLE:
         key = spriteKey(TRAINER_ICON_DEX, false)
@@ -157,7 +157,11 @@ export default class PlatformManager {
 
     if (key && this.scene.textures.exists(key)) {
       const img = this.scene.add.image(0, 0, key)
-      img.setScale(scale)
+      if (key === 'tall-grass-tile' || key === 'tall-grass') {
+        img.setDisplaySize(48, 48)
+      } else {
+        img.setScale(scale)
+      }
       return img
     }
     return undefined

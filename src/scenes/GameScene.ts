@@ -73,7 +73,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onPlatformCollide(player: any, platform: any) {
-    if (!this.eventPopup?.isVisible() && !this.eventOccurred && this.platformManager && this.eventManager) {
+    if (!this.eventPopup?.isVisible() && !this.eventOccurred && this.platformManager && this.eventManager && this.eventPopup) {
       const platformData = this.platformManager.getPlatformData(platform)
       if (platformData && !this.touchedPlatforms.has(platform)) {
         this.touchedPlatforms.add(platform)

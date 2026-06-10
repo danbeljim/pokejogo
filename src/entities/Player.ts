@@ -19,7 +19,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this)
 
     // Create visual representation - rectangle
-    const graphics = scene.make.graphics({ x: 0, y: 0, add: false })
+    const graphics = scene.make.graphics({})
     graphics.fillStyle(0xFF0000, 1)
     graphics.fillRect(0, 0, 30, 40)
     graphics.generateTexture('player', 30, 40)

@@ -13,7 +13,7 @@ export default class EventPopup {
   show(result: EventResult, onClose: () => void) {
     if (this.visible) return
 
-    const graphics = this.scene.make.graphics({ add: false })
+    const graphics = this.scene.make.graphics({})
     graphics.fillStyle(0x000000, 0.8)
     graphics.fillRect(0, 0, 800, 600)
     graphics.generateTexture('popup-bg', 800, 600)

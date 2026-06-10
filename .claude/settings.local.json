@@ -22,7 +22,9 @@
       "Bash(curl -s -o /dev/null -w \"boulder=%{http_code}\\\\n\" https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/boulder-badge.png)",
       "Bash(curl -s -o /dev/null -w \"rare=%{http_code}\\\\n\" https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png)",
       "Bash(curl -s https://api.github.com/repos/PokeAPI/sprites/contents/sprites/items)",
-      "Bash(curl -s \"https://api.github.com/repos/PokeAPI/sprites/contents/sprites/items\")"
+      "Bash(curl -s \"https://api.github.com/repos/PokeAPI/sprites/contents/sprites/items\")",
+      "Bash(curl -s \"https://api.github.com/search/code?q=tall_grass+repo:PokeAPI/sprites\")",
+      "Bash(curl -s \"https://api.github.com/search/repositories?q=pokemon+tileset\")"
     ]
   }
 }

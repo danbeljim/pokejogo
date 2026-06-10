@@ -16,7 +16,13 @@
       "Bash(npx tsc *)",
       "Bash(curl -s http://localhost:3001/src/main.ts)",
       "Bash(npx playwright *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/potion.png)",
+      "Bash(curl -s -o /dev/null -w \"boulder=%{http_code}\\\\n\" https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/boulder-badge.png)",
+      "Bash(curl -s -o /dev/null -w \"rare=%{http_code}\\\\n\" https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png)",
+      "Bash(curl -s https://api.github.com/repos/PokeAPI/sprites/contents/sprites/items)",
+      "Bash(curl -s \"https://api.github.com/repos/PokeAPI/sprites/contents/sprites/items\")"
     ]
   }
 }

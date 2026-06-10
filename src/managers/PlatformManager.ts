@@ -1,6 +1,8 @@
 import Phaser from 'phaser'
 import { GameMap, MapNode } from './LevelGenerator'
 import { PlatformEventType } from '../types'
+import { itemSpriteKey, TRAINER_ICON_DEX } from '../data/GameAssets'
+import { spriteKey } from '../entities/PokemonFactory'
 
 export default class PlatformManager {
   private scene: Phaser.Scene
@@ -9,15 +11,17 @@ export default class PlatformManager {
   private linesGraphics?: Phaser.GameObjects.Graphics
   private onNodeClick?: (node: MapNode) => void
   private currentNodeId: number = 0
+  private bossSignatureDexId: number = 95
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
   }
 
-  setMap(map: GameMap, onNodeClick: (node: MapNode) => void) {
+  setMap(map: GameMap, onNodeClick: (node: MapNode) => void, bossSignatureDexId?: number) {
     this.map = map
     this.onNodeClick = onNodeClick
     this.currentNodeId = map.startNodeId
+    if (bossSignatureDexId) this.bossSignatureDexId = bossSignatureDexId
     this.draw()
   }
 
@@ -89,20 +93,27 @@ export default class PlatformManager {
       container.add(ring)
     }
 
-    // Node circle
+    // Node circle (background)
     const circle = this.scene.add.graphics()
+    const radius = node.eventType === PlatformEventType.BOSS ? 28 : 22
     circle.fillStyle(color, node.visited && !isCurrent ? 0.4 : 1)
-    circle.fillCircle(0, 0, 20)
+    circle.fillCircle(0, 0, radius)
     circle.lineStyle(2, 0x000000, 1)
-    circle.strokeCircle(0, 0, 20)
+    circle.strokeCircle(0, 0, radius)
     container.add(circle)
 
-    // Icon (text symbol)
-    const icon = this.scene.add.text(0, 0, this.getIconForEventType(node.eventType), {
-      font: 'bold 18px Arial',
-      color: '#ffffff'
-    }).setOrigin(0.5)
-    container.add(icon)
+    // Icon: real sprite based on event type
+    const iconSprite = this.makeNodeIcon(node)
+    if (iconSprite) {
+      if (node.visited && !isCurrent) iconSprite.setAlpha(0.5)
+      container.add(iconSprite)
+    } else {
+      const icon = this.scene.add.text(0, 0, this.getIconForEventType(node.eventType), {
+        font: 'bold 18px Arial',
+        color: '#ffffff'
+      }).setOrigin(0.5)
+      container.add(icon)
+    }
 
     if (isClickable) {
       container.setSize(50, 50)
@@ -115,6 +126,43 @@ export default class PlatformManager {
     }
 
     this.nodeGraphics.set(node.id, container)
+  }
+
+  private makeNodeIcon(node: MapNode): Phaser.GameObjects.Image | undefined {
+    let key: string | undefined
+    let scale = 1.5
+
+    switch (node.eventType) {
+      case PlatformEventType.POKEMON_CAPTURE:
+        key = itemSpriteKey('pokeball')
+        scale = 1.8
+        break
+      case PlatformEventType.ITEM_PICKUP:
+        key = itemSpriteKey('potion')
+        scale = 1.8
+        break
+      case PlatformEventType.WILD_POKEMON:
+        // Random wild pokemon sprite (use event data)
+        const wildId = node.eventData?.pokemonId || 19
+        key = spriteKey(wildId, false)
+        scale = 1.0
+        break
+      case PlatformEventType.TRAINER_BATTLE:
+        key = spriteKey(TRAINER_ICON_DEX, false)
+        scale = 1.0
+        break
+      case PlatformEventType.BOSS:
+        key = spriteKey(this.bossSignatureDexId, false)
+        scale = 1.4
+        break
+    }
+
+    if (key && this.scene.textures.exists(key)) {
+      const img = this.scene.add.image(0, 0, key)
+      img.setScale(scale)
+      return img
+    }
+    return undefined
   }
 
   private isClickable(node: MapNode): boolean {

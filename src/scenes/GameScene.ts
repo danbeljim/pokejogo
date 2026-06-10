@@ -4,10 +4,11 @@ import LevelGenerator from '../managers/LevelGenerator'
 import PlatformManager from '../managers/PlatformManager'
 import EventManager from '../managers/EventManager'
 import EventPopup from '../ui/EventPopup'
-import { createStarterByDexId, POKEMON_LIST } from '../entities/PokemonFactory'
+import { createStarterByDexId, POKEMON_LIST, spriteKey, spriteUrl } from '../entities/PokemonFactory'
 import { Pokemon } from '../entities/Pokemon'
-import { preloadSprites } from '../utils/SpriteLoader'
+import { preloadSprites, preloadItemSprites } from '../utils/SpriteLoader'
 import { MapNode } from '../managers/LevelGenerator'
+import { TRAINER_ICON_DEX } from '../data/GameAssets'
 
 export default class GameScene extends Phaser.Scene {
   private mapManager = new MapManager()
@@ -34,10 +35,27 @@ export default class GameScene extends Phaser.Scene {
     const ids = POKEMON_LIST.map(p => p.dexId)
     preloadSprites(this, ids, false)
     preloadSprites(this, ids, true)
+    preloadItemSprites(this)
+
+    // Trainer icon
+    if (!this.textures.exists(spriteKey(TRAINER_ICON_DEX, false))) {
+      this.load.image(spriteKey(TRAINER_ICON_DEX, false), spriteUrl(TRAINER_ICON_DEX, false))
+    }
+
+    // Signature pokemon sprites for all gyms (BG + boss icon)
+    this.mapManager.maps.forEach(m => {
+      const k = spriteKey(m.signaturePokemonDexId, false)
+      if (!this.textures.exists(k)) {
+        this.load.image(k, spriteUrl(m.signaturePokemonDexId, false))
+      }
+    })
   }
 
   create() {
-    this.cameras.main.setBackgroundColor('#1a1a2e')
+    const currentMap = this.mapManager.getCurrentMap()
+    this.cameras.main.setBackgroundColor(currentMap.bgColor)
+
+    this.drawThemedBackground(currentMap)
 
     if (this.playerTeam.length === 0) {
       this.playerTeam.push(createStarterByDexId(this.starterDexId))
@@ -47,16 +65,44 @@ export default class GameScene extends Phaser.Scene {
 
     this.platformManager = new PlatformManager(this)
     this.eventPopup = new EventPopup(this)
-
-    const currentMap = this.mapManager.getCurrentMap()
     const map = this.levelGenerator.generateLevel(
       currentMap.platformCount,
       currentMap.difficulty
     )
-    this.platformManager.setMap(map, (node) => this.onNodeClick(node))
+    this.platformManager.setMap(map, (node) => this.onNodeClick(node), currentMap.signaturePokemonDexId)
 
     this.updateHud()
     this.drawLegend()
+  }
+
+  private drawThemedBackground(currentMap: any) {
+    const w = 800
+    const h = 600
+
+    // Gradient overlay using accent color
+    const accent = parseInt(currentMap.accentColor.replace('#', '0x'))
+    const g = this.add.graphics()
+    g.fillGradientStyle(accent, accent, 0x000000, 0x000000, 0.25, 0.25, 0.6, 0.6)
+    g.fillRect(0, 0, w, h)
+    g.setDepth(0)
+
+    // Giant signature pokemon silhouette in background
+    const sigKey = spriteKey(currentMap.signaturePokemonDexId, false)
+    if (this.textures.exists(sigKey)) {
+      const bg = this.add.image(w / 2, h / 2 + 30, sigKey)
+      bg.setScale(7)
+      bg.setAlpha(0.12)
+      bg.setTint(parseInt(currentMap.accentColor.replace('#', '0x')))
+      bg.setDepth(0)
+    }
+
+    // Title overlay
+    this.add.text(400, 30, currentMap.themeName, {
+      font: 'italic bold 16px Arial',
+      color: currentMap.accentColor,
+      stroke: '#000',
+      strokeThickness: 4
+    }).setOrigin(0.5).setDepth(0).setAlpha(0.7)
   }
 
   private drawLegend() {

@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { spriteKey, spriteUrl } from '../entities/PokemonFactory'
+import { ITEM_SPRITES, itemSpriteKey } from '../data/GameAssets'
 
 export function loadSprite(scene: Phaser.Scene, dexId: number, back: boolean = false): Promise<string> {
   const key = spriteKey(dexId, back)
@@ -19,6 +20,15 @@ export function preloadSprites(scene: Phaser.Scene, dexIds: number[], back: bool
     const key = spriteKey(id, back)
     if (!scene.textures.exists(key)) {
       scene.load.image(key, spriteUrl(id, back))
+    }
+  })
+}
+
+export function preloadItemSprites(scene: Phaser.Scene) {
+  Object.entries(ITEM_SPRITES).forEach(([id, url]) => {
+    const key = itemSpriteKey(id)
+    if (!scene.textures.exists(key)) {
+      scene.load.image(key, url)
     }
   })
 }

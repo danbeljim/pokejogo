@@ -1,4 +1,4 @@
-const Phaser = require('phaser')
+import Phaser from 'phaser'
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -6,30 +6,57 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    // Preload assets here if needed
+    // Empty - fetch happens in create
   }
 
   async create() {
-    // Fetch first Pokemon data from PokéAPI
-    const pokeId = 1 // Bulbasaur
-    const pokemonData = await this.fetchPokemon(pokeId)
+    const pokeId = 1
 
-    // Get sprite
-    const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/pokemon/other/official-artwork/${pokeId}.png`
+    try {
+      const pokemonData = await this.fetchPokemon(pokeId)
+      const spriteUrl = pokemonData.sprites.other['official-artwork']?.front_default
 
-    // Load sprite dynamically
-    this.textures.once('addtexture', () => {
-      const pokemon = this.add.image(400, 300, `pokemon-${pokeId}`)
-      pokemon.setScale(2)
-    })
+      // Display info primero
+      this.add.text(50, 50, `Pokémon: ${pokemonData.name.toUpperCase()}`, {
+        fontSize: '24px',
+        fill: '#ffffff',
+        fontStyle: 'bold'
+      })
 
-    this.load.image(`pokemon-${pokeId}`, spriteUrl)
-    this.load.start()
+      this.add.text(50, 100, `ID: ${pokeId}`, {
+        fontSize: '16px',
+        fill: '#ffffff'
+      })
 
-    // Display Pokemon info
-    this.add.text(50, 50, `Pokémon: ${pokemonData.name}`, {
-      fontSize: '20px',
-      fill: '#ffffff'
+      if (spriteUrl) {
+        // Load sprite después
+        await this.loadSpriteTexture(pokeId, spriteUrl)
+        const pokemon = this.add.image(400, 250, `pokemon-${pokeId}`)
+        pokemon.setScale(2)
+      }
+    } catch (error) {
+      this.add.text(50, 50, `Error: ${error.message}`, {
+        fontSize: '16px',
+        fill: '#ff0000'
+      })
+    }
+  }
+
+  async loadSpriteTexture(id, url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        this.textures.addCanvas(`pokemon-${id}`, canvas)
+        resolve()
+      }
+      img.onerror = () => reject(new Error('Failed to load sprite'))
+      img.src = url
     })
   }
 
@@ -39,8 +66,8 @@ class GameScene extends Phaser.Scene {
   }
 
   update() {
-    // Game loop updates
+    // Game loop
   }
 }
 
-module.exports = GameScene
+export default GameScene

@@ -1,31 +1,30 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
+import Phaser from 'phaser'
 import GameScene from './scenes/GameScene'
 import './App.css'
 
 export default function App() {
-  const gameRef = useRef(null)
-
   useEffect(() => {
-    const Phaser = require('phaser')
-
-    const config = {
-      type: Phaser.AUTO,
-      width: 800,
-      height: 600,
-      parent: gameRef.current,
-      scene: GameScene,
-      physics: {
-        default: 'arcade',
-        arcade: {
-          gravity: { y: 0 },
-          debug: false,
+    setTimeout(() => {
+      const config = {
+        type: Phaser.WEBGL,
+        width: 800,
+        height: 600,
+        canvas: document.getElementById('game-canvas'),
+        scene: GameScene,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 0 },
+            debug: false,
+          },
         },
-      },
-    }
+      }
 
-    const game = new Phaser.Game(config)
-    return () => game.destroy(true)
+      const game = new Phaser.Game(config)
+      return () => game.destroy(true)
+    }, 0)
   }, [])
 
-  return <div ref={gameRef} />
+  return <canvas id="game-canvas" style={{ display: 'block' }} />
 }

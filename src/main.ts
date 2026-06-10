@@ -1,8 +1,9 @@
 import Phaser from 'phaser'
 import GameScene from './scenes/GameScene'
+import BattleScene from './scenes/BattleScene'
 
 const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
+  type: Phaser.CANVAS,
   width: 800,
   height: 600,
   backgroundColor: '#000000',
@@ -13,7 +14,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [GameScene]
+  scene: [GameScene, BattleScene]
 }
 
 new Phaser.Game(config)

@@ -5,6 +5,8 @@ import LevelGenerator from '../managers/LevelGenerator'
 import PlatformManager from '../managers/PlatformManager'
 import EventManager from '../managers/EventManager'
 import EventPopup from '../ui/EventPopup'
+import { createStarterPokemon } from '../entities/PokemonFactory'
+import { Pokemon } from '../entities/Pokemon'
 
 export default class GameScene extends Phaser.Scene {
   private player?: Player
@@ -16,23 +18,27 @@ export default class GameScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
   private touchedPlatforms: Set<any> = new Set()
   private eventOccurred: boolean = false
+  private hudText?: Phaser.GameObjects.Text
+  private playerTeam: Pokemon[] = []
 
   constructor() {
     super('GameScene')
   }
 
-  preload() {
-  }
-
   create() {
-    // Background
     this.cameras.main.setBackgroundColor('#1a1a2e')
 
-    // Managers
+    // Initialize team if empty (first map only)
+    if (this.playerTeam.length === 0) {
+      this.playerTeam.push(createStarterPokemon())
+    } else {
+      // Heal team between maps
+      this.playerTeam.forEach(p => p.heal(p.maxHp))
+    }
+
     this.platformManager = new PlatformManager(this)
     this.eventPopup = new EventPopup(this)
 
-    // Generate level
     const currentMap = this.mapManager.getCurrentMap()
     const platforms = this.levelGenerator.generateLevel(
       currentMap.platformCount,
@@ -40,10 +46,8 @@ export default class GameScene extends Phaser.Scene {
     )
     this.platformManager.createPlatforms(platforms)
 
-    // Player
     this.player = new Player(this, 400, 500)
 
-    // Collisions
     this.physics.add.collider(
       this.player,
       this.platformManager.getPlatformsGroup(),
@@ -52,39 +56,113 @@ export default class GameScene extends Phaser.Scene {
       this
     )
 
-    // Input
     this.cursors = this.input.keyboard?.createCursorKeys()
 
-    // UI
-    this.add.text(10, 10, `Map ${currentMap.id}: ${currentMap.name}`, {
-      font: '16px Arial',
-      color: '#ffffff'
-    })
-
-    this.add.text(10, 30, `Gym Leader: ${currentMap.gymLeaderName}`, {
-      font: '14px Arial',
-      color: '#cccccc'
-    })
-
-    this.add.text(10, 50, `Team: ${this.player.getPokemonTeam().length}/6`, {
-      font: '14px Arial',
-      color: '#90EE90'
-    })
+    this.updateHud()
   }
 
-  onPlatformCollide(player: any, platform: any) {
-    if (!this.eventPopup?.isVisible() && !this.eventOccurred && this.platformManager && this.eventManager && this.eventPopup) {
-      const platformData = this.platformManager.getPlatformData(platform)
-      if (platformData && !this.touchedPlatforms.has(platform)) {
-        this.touchedPlatforms.add(platform)
-        this.eventOccurred = true
+  private updateHud() {
+    if (this.hudText) this.hudText.destroy()
+    const currentMap = this.mapManager.getCurrentMap()
+    const teamSummary = this.playerTeam
+      .map(p => `${p.name}(Lv${p.level} ${p.hp}/${p.maxHp})`)
+      .join(', ')
 
-        const result = this.eventManager.handleEvent(platformData, this.player!.getPokemonTeam())
-        this.eventPopup.show(result, () => {
-          this.eventOccurred = false
-          this.touchedPlatforms.delete(platform)
+    this.hudText = this.add.text(10, 10,
+      `Map ${currentMap.id}: ${currentMap.name}\n` +
+      `Gym Leader: ${currentMap.gymLeaderName}\n` +
+      `Medals: ${this.mapManager.getMedalCount()}/8\n` +
+      `Team: ${teamSummary}`, {
+      font: '13px Arial',
+      color: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 6, y: 4 }
+    }).setScrollFactor(0).setDepth(100)
+  }
+
+  onPlatformCollide(_player: any, platform: any) {
+    if (this.eventOccurred) return
+    if (!this.eventPopup || !this.platformManager) return
+    if (this.touchedPlatforms.has(platform)) return
+
+    const platformData = this.platformManager.getPlatformData(platform)
+    if (!platformData) return
+
+    this.touchedPlatforms.add(platform)
+    this.eventOccurred = true
+
+    const currentMap = this.mapManager.getCurrentMap()
+    const result = this.eventManager.handleEvent(
+      platformData,
+      this.playerTeam,
+      currentMap.difficulty,
+      currentMap.gymLeaderName
+    )
+
+    if (result.requiresBattle && result.enemyTeam && result.battleType) {
+      this.eventPopup.show(result, () => {
+        this.scene.pause()
+        this.scene.launch('BattleScene', {
+          playerTeam: this.playerTeam,
+          enemyTeam: result.enemyTeam,
+          battleType: result.battleType,
+          gymLeaderName: currentMap.gymLeaderName,
+          onComplete: (won: boolean) => this.onBattleEnd(won, result.battleType!)
         })
-      }
+      })
+    } else {
+      this.eventPopup.show(result, () => {
+        this.eventOccurred = false
+        this.updateHud()
+      })
+    }
+  }
+
+  private onBattleEnd(won: boolean, battleType: 'wild' | 'trainer' | 'boss') {
+    this.scene.resume()
+    this.eventOccurred = false
+
+    if (!won) {
+      this.eventPopup?.show({
+        type: 'boss' as any,
+        message: 'You lost! Restarting from start...'
+      }, () => {
+        this.playerTeam = []
+        this.mapManager.currentMapId = 0
+        this.mapManager.collectedMedals = []
+        this.scene.restart()
+      })
+      return
+    }
+
+    const rewardMsg = this.eventManager.applyBattleReward(this.playerTeam, battleType)
+
+    if (battleType === 'boss') {
+      this.mapManager.addMedal({
+        name: this.mapManager.getCurrentMap().name,
+        badgeNumber: this.mapManager.getCurrentMap().id
+      })
+
+      const hasNext = this.mapManager.nextMap()
+      this.eventPopup?.show({
+        type: 'boss' as any,
+        message: `Medal #${this.mapManager.getMedalCount()} earned! ${rewardMsg}` +
+          (hasNext ? ' Onward to next gym!' : ' YOU WIN THE GAME!')
+      }, () => {
+        if (hasNext) {
+          this.scene.restart()
+        } else {
+          this.scene.restart()
+        }
+      })
+    } else {
+      this.updateHud()
+      this.eventPopup?.show({
+        type: battleType as any,
+        message: `Victory! ${rewardMsg}`
+      }, () => {
+        this.updateHud()
+      })
     }
   }
 
@@ -103,7 +181,6 @@ export default class GameScene extends Phaser.Scene {
       this.player.jump()
     }
 
-    // Fall off world
     if (this.player.y > 600) {
       this.scene.restart()
     }

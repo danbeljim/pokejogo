@@ -13,7 +13,10 @@
       "Bash(curl -s http://localhost:3001/)",
       "PowerShell(Get-Process *)",
       "Bash(curl -s http://localhost:3002/)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(curl -s http://localhost:3001/src/main.ts)",
+      "Bash(npx playwright *)",
+      "Bash(node *)"
     ]
   }
 }

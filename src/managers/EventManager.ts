@@ -1,117 +1,90 @@
 import { PlatformEventType } from '../types'
 import { Platform } from './LevelGenerator'
 import { Pokemon } from '../entities/Pokemon'
+import { createWildPokemon, createTrainerTeam, createGymLeaderTeam } from '../entities/PokemonFactory'
 
 export interface EventResult {
   type: PlatformEventType
   message: string
+  requiresBattle?: boolean
+  enemyTeam?: Pokemon[]
+  battleType?: 'wild' | 'trainer' | 'boss'
   pokemonCaught?: Pokemon
-  pokemonLeveledUp?: boolean
   itemObtained?: string
-  expGained?: number
 }
 
 export default class EventManager {
-  private capturedPokemon: Map<number, Pokemon> = new Map()
-
-  handleEvent(platform: Platform, playerTeam: Pokemon[]): EventResult {
+  handleEvent(platform: Platform, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string): EventResult {
     switch (platform.eventType) {
       case PlatformEventType.POKEMON_CAPTURE:
-        return this.handleCapture(platform, playerTeam)
+        return this.handleCapture(platform, playerTeam, difficulty)
       case PlatformEventType.WILD_POKEMON:
-        return this.handleWildBattle(platform, playerTeam)
+        return this.prepareWildBattle(platform, difficulty)
       case PlatformEventType.TRAINER_BATTLE:
-        return this.handleTrainerBattle(platform, playerTeam)
+        return this.prepareTrainerBattle(difficulty)
       case PlatformEventType.ITEM_PICKUP:
         return this.handleItemPickup(platform)
       case PlatformEventType.BOSS:
-        return this.handleBossBattle(platform)
+        return this.prepareBossBattle(difficulty, gymName || 'Boss')
       default:
-        return { type: PlatformEventType.POKEMON_CAPTURE, message: 'Unknown event' }
+        return { type: PlatformEventType.POKEMON_CAPTURE, message: 'Unknown' }
     }
   }
 
-  private handleCapture(platform: Platform, playerTeam: Pokemon[]): EventResult {
-    const pokemonId = platform.eventData?.pokemonId || 1
-    const pokemon = new Pokemon({
-      id: pokemonId,
-      name: `Pokémon #${pokemonId}`,
-      level: 5 + playerTeam.length,
-      hp: 20,
-      maxHp: 20,
-      attack: 8,
-      defense: 8,
-      speed: 8,
-      moves: ['Tackle', 'Growl']
-    })
-
+  private handleCapture(platform: Platform, playerTeam: Pokemon[], difficulty: number): EventResult {
+    if (playerTeam.length >= 6) {
+      return {
+        type: PlatformEventType.POKEMON_CAPTURE,
+        message: 'Team full! Skipped capture.'
+      }
+    }
+    const level = Math.max(3, difficulty * 3 + Math.floor(Math.random() * 4))
+    const pokemon = createWildPokemon(level, platform.eventData?.pokemonId)
     playerTeam.push(pokemon)
-
     return {
       type: PlatformEventType.POKEMON_CAPTURE,
-      message: `Caught ${pokemon.name} (Level ${pokemon.level})!`,
+      message: `Caught ${pokemon.name} (Lv.${pokemon.level})! Team: ${playerTeam.length}/6`,
       pokemonCaught: pokemon
     }
   }
 
-  private handleWildBattle(platform: Platform, playerTeam: Pokemon[]): EventResult {
-    if (playerTeam.length === 0) {
-      return {
-        type: PlatformEventType.WILD_POKEMON,
-        message: 'No Pokémon to battle!'
-      }
-    }
-
-    const pokemonId = platform.eventData?.pokemonId || 1
-    const wildPokemon = new Pokemon({
-      id: pokemonId,
-      name: `Wild Pokémon #${pokemonId}`,
-      level: platform.eventData?.level || 3,
-      hp: 15,
-      maxHp: 15,
-      attack: 5,
-      defense: 5,
-      speed: 5,
-      moves: ['Tackle']
-    })
-
-    const playerPokemon = playerTeam[0]
-    playerPokemon.levelUp()
-
+  private prepareWildBattle(platform: Platform, difficulty: number): EventResult {
+    const level = platform.eventData?.level || (2 + difficulty * 2)
+    const wild = createWildPokemon(level, platform.eventData?.pokemonId)
     return {
       type: PlatformEventType.WILD_POKEMON,
-      message: `Defeated wild ${wildPokemon.name}! ${playerPokemon.name} grew to Level ${playerPokemon.level}!`,
-      pokemonLeveledUp: true,
-      expGained: 10
+      message: `Wild ${wild.name} appeared!`,
+      requiresBattle: true,
+      enemyTeam: [wild],
+      battleType: 'wild'
     }
   }
 
-  private handleTrainerBattle(platform: Platform, playerTeam: Pokemon[]): EventResult {
-    if (playerTeam.length === 0) {
-      return {
-        type: PlatformEventType.TRAINER_BATTLE,
-        message: 'No Pokémon to battle!'
-      }
-    }
-
-    playerTeam.forEach(poke => {
-      poke.levelUp()
-      poke.levelUp()
-    })
-
+  private prepareTrainerBattle(difficulty: number): EventResult {
+    const team = createTrainerTeam(difficulty)
     return {
       type: PlatformEventType.TRAINER_BATTLE,
-      message: `Defeated trainer! All Pokémon gained 2 levels!`,
-      pokemonLeveledUp: true,
-      expGained: 30
+      message: `Trainer challenges you!`,
+      requiresBattle: true,
+      enemyTeam: team,
+      battleType: 'trainer'
+    }
+  }
+
+  private prepareBossBattle(difficulty: number, gymName: string): EventResult {
+    const team = createGymLeaderTeam(difficulty)
+    return {
+      type: PlatformEventType.BOSS,
+      message: `Gym Leader ${gymName} appears!`,
+      requiresBattle: true,
+      enemyTeam: team,
+      battleType: 'boss'
     }
   }
 
   private handleItemPickup(platform: Platform): EventResult {
-    const items = ['Potion', 'Super Potion', 'Full Restore', 'Max Revive', 'Stat Boost']
-    const itemId = platform.eventData?.itemId || 0
-    const item = items[itemId % items.length]
-
+    const items = ['Potion', 'Super Potion', 'Full Restore', 'Max Revive', 'X Attack']
+    const item = items[(platform.eventData?.itemId || 0) % items.length]
     return {
       type: PlatformEventType.ITEM_PICKUP,
       message: `Found ${item}!`,
@@ -119,11 +92,13 @@ export default class EventManager {
     }
   }
 
-  private handleBossBattle(platform: Platform): EventResult {
-    return {
-      type: PlatformEventType.BOSS,
-      message: 'Time to face the Gym Leader!',
-      expGained: 50
-    }
+  applyBattleReward(playerTeam: Pokemon[], battleType: 'wild' | 'trainer' | 'boss'): string {
+    const levelGain = battleType === 'wild' ? 1 : battleType === 'trainer' ? 2 : 3
+    playerTeam.forEach(p => {
+      if (p.isAlive()) {
+        for (let i = 0; i < levelGain; i++) p.levelUp()
+      }
+    })
+    return `All Pokémon gained ${levelGain} level(s)!`
   }
 }

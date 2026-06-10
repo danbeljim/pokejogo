@@ -5,10 +5,13 @@ const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
+  render: {
+    backgroundColor: '#000000'
+  },
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 300 },
+      gravity: { y: 500 },
       debug: false
     }
   },

@@ -11,6 +11,7 @@ export interface EventResult {
   battleType?: 'wild' | 'trainer' | 'boss'
   pokemonCaught?: Pokemon
   itemObtained?: string
+  requiresItemPicker?: boolean
 }
 
 export default class EventManager {
@@ -82,13 +83,11 @@ export default class EventManager {
     }
   }
 
-  private handleItemPickup(platform: MapNode): EventResult {
-    const items = ['Potion', 'Super Potion', 'Full Restore', 'Max Revive', 'X Attack']
-    const item = items[(platform.eventData?.itemId || 0) % items.length]
+  private handleItemPickup(_platform: MapNode): EventResult {
     return {
       type: PlatformEventType.ITEM_PICKUP,
-      message: `Found ${item}!`,
-      itemObtained: item
+      message: 'Found 3 items! Choose one.',
+      requiresItemPicker: true
     }
   }
 

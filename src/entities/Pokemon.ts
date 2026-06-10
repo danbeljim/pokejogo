@@ -1,3 +1,5 @@
+import { PokemonType } from '../data/Types'
+
 export interface PokemonData {
   id: number
   name: string
@@ -8,6 +10,8 @@ export interface PokemonData {
   defense: number
   speed: number
   moves: string[]
+  type?: PokemonType
+  heldItem?: string
 }
 
 export class Pokemon implements PokemonData {
@@ -20,6 +24,8 @@ export class Pokemon implements PokemonData {
   defense: number
   speed: number
   moves: string[]
+  type: PokemonType
+  heldItem?: string
   experience: number = 0
 
   constructor(data: PokemonData) {
@@ -32,6 +38,8 @@ export class Pokemon implements PokemonData {
     this.defense = data.defense
     this.speed = data.speed
     this.moves = data.moves
+    this.type = data.type || 'normal'
+    this.heldItem = data.heldItem
   }
 
   levelUp() {

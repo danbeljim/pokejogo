@@ -1,34 +1,30 @@
 import { Pokemon } from './Pokemon'
+import { PokemonType } from '../data/Types'
 
-export const POKEMON_LIST: { name: string; dexId: number }[] = [
-  { name: 'Bulbasaur', dexId: 1 },
-  { name: 'Charmander', dexId: 4 },
-  { name: 'Squirtle', dexId: 7 },
-  { name: 'Pikachu', dexId: 25 },
-  { name: 'Eevee', dexId: 133 },
-  { name: 'Geodude', dexId: 74 },
-  { name: 'Zubat', dexId: 41 },
-  { name: 'Pidgey', dexId: 16 },
-  { name: 'Rattata', dexId: 19 },
-  { name: 'Spearow', dexId: 21 },
-  { name: 'Machop', dexId: 66 },
-  { name: 'Gastly', dexId: 92 },
-  { name: 'Onix', dexId: 95 },
-  { name: 'Magikarp', dexId: 129 },
-  { name: 'Abra', dexId: 63 },
-  { name: 'Psyduck', dexId: 54 },
-  { name: 'Growlithe', dexId: 58 },
-  { name: 'Poliwag', dexId: 60 },
-  { name: 'Ponyta', dexId: 77 },
-  { name: 'Slowpoke', dexId: 79 }
+export const POKEMON_LIST: { name: string; dexId: number; type: PokemonType; moves: string[] }[] = [
+  { name: 'Bulbasaur', dexId: 1, type: 'grass', moves: ['Tackle', 'Vine Whip', 'Razor Leaf'] },
+  { name: 'Charmander', dexId: 4, type: 'fire', moves: ['Scratch', 'Ember', 'Flamethrower'] },
+  { name: 'Squirtle', dexId: 7, type: 'water', moves: ['Tackle', 'Water Gun', 'Hydro Pump'] },
+  { name: 'Pikachu', dexId: 25, type: 'electric', moves: ['Quick Attack', 'Thunder Shock', 'Thunderbolt'] },
+  { name: 'Eevee', dexId: 133, type: 'normal', moves: ['Tackle', 'Quick Attack', 'Bite'] },
+  { name: 'Geodude', dexId: 74, type: 'rock', moves: ['Tackle', 'Rock Throw'] },
+  { name: 'Zubat', dexId: 41, type: 'poison', moves: ['Bite', 'Wing Attack', 'Poison Sting'] },
+  { name: 'Pidgey', dexId: 16, type: 'flying', moves: ['Tackle', 'Peck', 'Wing Attack'] },
+  { name: 'Rattata', dexId: 19, type: 'normal', moves: ['Tackle', 'Quick Attack', 'Bite'] },
+  { name: 'Spearow', dexId: 21, type: 'flying', moves: ['Peck', 'Wing Attack'] },
+  { name: 'Machop', dexId: 66, type: 'fighting', moves: ['Karate Chop', 'Headbutt'] },
+  { name: 'Gastly', dexId: 92, type: 'ghost', moves: ['Lick', 'Confusion'] },
+  { name: 'Onix', dexId: 95, type: 'rock', moves: ['Tackle', 'Rock Throw', 'Bite'] },
+  { name: 'Magikarp', dexId: 129, type: 'water', moves: ['Tackle'] },
+  { name: 'Abra', dexId: 63, type: 'psychic', moves: ['Confusion', 'Psychic'] },
+  { name: 'Psyduck', dexId: 54, type: 'water', moves: ['Scratch', 'Water Gun', 'Confusion'] },
+  { name: 'Growlithe', dexId: 58, type: 'fire', moves: ['Bite', 'Ember', 'Flamethrower'] },
+  { name: 'Poliwag', dexId: 60, type: 'water', moves: ['Water Gun', 'Hydro Pump'] },
+  { name: 'Ponyta', dexId: 77, type: 'fire', moves: ['Tackle', 'Ember'] },
+  { name: 'Slowpoke', dexId: 79, type: 'psychic', moves: ['Tackle', 'Confusion'] }
 ]
 
 const STARTERS = POKEMON_LIST.slice(0, 4)
-
-const MOVE_POOL = [
-  'Tackle', 'Scratch', 'Ember', 'Water Gun', 'Vine Whip',
-  'Thunder Shock', 'Quick Attack', 'Bite', 'Peck', 'Headbutt'
-]
 
 export function spriteUrl(dexId: number, back: boolean = false): string {
   return back
@@ -38,6 +34,12 @@ export function spriteUrl(dexId: number, back: boolean = false): string {
 
 export function spriteKey(dexId: number, back: boolean = false): string {
   return `pokemon-${back ? 'back-' : ''}${dexId}`
+}
+
+function pickMoves(allMoves: string[], level: number): string[] {
+  if (allMoves.length <= 2) return [...allMoves]
+  const count = Math.min(level >= 10 ? 3 : 2, allMoves.length)
+  return allMoves.slice(0, count)
 }
 
 export function createWildPokemon(level: number, dexId?: number): Pokemon {
@@ -54,7 +56,8 @@ export function createWildPokemon(level: number, dexId?: number): Pokemon {
     attack: 6 + level * 2,
     defense: 6 + level,
     speed: 6 + level,
-    moves: [MOVE_POOL[Math.floor(Math.random() * MOVE_POOL.length)]]
+    moves: pickMoves(entry.moves, level),
+    type: entry.type
   })
 }
 
@@ -80,8 +83,8 @@ export function createGymLeaderTeam(difficulty: number): Pokemon[] {
   return team
 }
 
-export function createStarterPokemon(): Pokemon {
-  const entry = STARTERS[Math.floor(Math.random() * STARTERS.length)]
+export function createStarterByDexId(dexId: number): Pokemon {
+  const entry = STARTERS.find(s => s.dexId === dexId) || STARTERS[0]
   return new Pokemon({
     id: entry.dexId,
     name: entry.name,
@@ -91,6 +94,16 @@ export function createStarterPokemon(): Pokemon {
     attack: 10,
     defense: 8,
     speed: 8,
-    moves: ['Tackle', 'Growl']
+    moves: entry.moves.slice(0, 2),
+    type: entry.type
   })
+}
+
+export function createStarterPokemon(): Pokemon {
+  const entry = STARTERS[Math.floor(Math.random() * STARTERS.length)]
+  return createStarterByDexId(entry.dexId)
+}
+
+export function getStarters() {
+  return STARTERS
 }

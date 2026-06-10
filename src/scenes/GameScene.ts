@@ -4,7 +4,7 @@ import LevelGenerator from '../managers/LevelGenerator'
 import PlatformManager from '../managers/PlatformManager'
 import EventManager from '../managers/EventManager'
 import EventPopup from '../ui/EventPopup'
-import { createStarterPokemon, POKEMON_LIST } from '../entities/PokemonFactory'
+import { createStarterByDexId, POKEMON_LIST } from '../entities/PokemonFactory'
 import { Pokemon } from '../entities/Pokemon'
 import { preloadSprites } from '../utils/SpriteLoader'
 import { MapNode } from '../managers/LevelGenerator'
@@ -18,9 +18,16 @@ export default class GameScene extends Phaser.Scene {
   private hudText?: Phaser.GameObjects.Text
   private playerTeam: Pokemon[] = []
   private eventOccurred: boolean = false
+  private starterDexId: number = 4
 
   constructor() {
     super('GameScene')
+  }
+
+  init(data: { starterDexId?: number }) {
+    if (data?.starterDexId) {
+      this.starterDexId = data.starterDexId
+    }
   }
 
   preload() {
@@ -33,7 +40,7 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#1a1a2e')
 
     if (this.playerTeam.length === 0) {
-      this.playerTeam.push(createStarterPokemon())
+      this.playerTeam.push(createStarterByDexId(this.starterDexId))
     } else {
       this.playerTeam.forEach(p => p.heal(p.maxHp))
     }
@@ -114,6 +121,15 @@ export default class GameScene extends Phaser.Scene {
           gymLeaderName: currentMap.gymLeaderName,
           onComplete: (won: boolean) => this.onBattleEnd(won, result.battleType!)
         })
+      })
+    } else if (result.requiresItemPicker) {
+      this.scene.pause()
+      this.scene.launch('ItemPickerScene', {
+        playerTeam: this.playerTeam,
+        onComplete: () => {
+          this.eventOccurred = false
+          this.updateHud()
+        }
       })
     } else {
       this.eventPopup.show(result, () => {

@@ -1,6 +1,8 @@
 import Phaser from 'phaser'
 import GameScene from './scenes/GameScene'
 import BattleScene from './scenes/BattleScene'
+import StartScene from './scenes/StartScene'
+import ItemPickerScene from './scenes/ItemPickerScene'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.CANVAS,
@@ -14,7 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [GameScene, BattleScene]
+  scene: [StartScene, GameScene, BattleScene, ItemPickerScene]
 }
 
 new Phaser.Game(config)

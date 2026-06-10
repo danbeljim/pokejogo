@@ -1,6 +1,8 @@
 import Phaser from 'phaser'
 import { Pokemon } from '../entities/Pokemon'
 import { spriteKey } from '../entities/PokemonFactory'
+import { getMove } from '../data/Moves'
+import { getEffectiveness, getEffectivenessLabel, TYPE_COLORS } from '../data/Types'
 
 export interface BattleData {
   playerTeam: Pokemon[]
@@ -83,20 +85,26 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   private currentSprites: Phaser.GameObjects.Image[] = []
+  private playerSpriteRef?: Phaser.GameObjects.Image
+  private enemySpriteRef?: Phaser.GameObjects.Image
 
-  private drawSprite(x: number, y: number, pokemon: Pokemon, back: boolean) {
+  private drawSprite(x: number, y: number, pokemon: Pokemon, back: boolean): Phaser.GameObjects.Image | undefined {
     const key = spriteKey(pokemon.id, back)
     if (this.textures.exists(key)) {
       const sprite = this.add.image(x, y, key)
       sprite.setScale(3)
       sprite.setOrigin(0.5, 0.5)
       this.currentSprites.push(sprite)
+      if (back) this.playerSpriteRef = sprite
+      else this.enemySpriteRef = sprite
+      return sprite
     } else {
       const g = this.add.graphics()
       g.fillStyle(back ? 0x4ECDC4 : 0xFF6B6B, 1)
       g.fillCircle(x, y, 40)
       g.lineStyle(3, 0xffffff, 1)
       g.strokeCircle(x, y, 40)
+      return undefined
     }
   }
 
@@ -123,10 +131,14 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyHpBar.fillRect(400, 150, 200 * ePct, 12)
 
     if (this.playerHpText) {
-      this.playerHpText.setText(`${this.playerPokemon.name} Lv.${this.playerPokemon.level}  HP: ${this.playerPokemon.hp}/${this.playerPokemon.maxHp}`)
+      const pType = `[${this.playerPokemon.type.toUpperCase()}]`
+      this.playerHpText.setText(`${this.playerPokemon.name} ${pType} Lv.${this.playerPokemon.level}  HP: ${this.playerPokemon.hp}/${this.playerPokemon.maxHp}`)
+      this.playerHpText.setColor(TYPE_COLORS[this.playerPokemon.type])
     }
     if (this.enemyHpText) {
-      this.enemyHpText.setText(`${this.enemyPokemon.name} Lv.${this.enemyPokemon.level}  HP: ${this.enemyPokemon.hp}/${this.enemyPokemon.maxHp}`)
+      const eType = `[${this.enemyPokemon.type.toUpperCase()}]`
+      this.enemyHpText.setText(`${this.enemyPokemon.name} ${eType} Lv.${this.enemyPokemon.level}  HP: ${this.enemyPokemon.hp}/${this.enemyPokemon.maxHp}`)
+      this.enemyHpText.setColor(TYPE_COLORS[this.enemyPokemon.type])
     }
   }
 
@@ -136,17 +148,20 @@ export default class BattleScene extends Phaser.Scene {
 
     const moves = this.playerPokemon.moves
     const yStart = 510
-    moves.forEach((move, i) => {
-      const btn = this.add.text(150 + (i * 180), yStart, `[${move}]`, {
-        font: '18px Arial',
-        color: '#FFD700',
+    moves.forEach((moveName, i) => {
+      const move = getMove(moveName)
+      const color = TYPE_COLORS[move.type]
+      const btn = this.add.text(140 + (i * 170), yStart, `${move.name}\n[${move.type}] P:${move.power}`, {
+        font: '13px Arial',
+        color: color,
         backgroundColor: '#222',
-        padding: { x: 12, y: 6 }
+        padding: { x: 10, y: 6 },
+        align: 'center'
       }).setOrigin(0.5).setInteractive()
 
-      btn.on('pointerdown', () => this.playerAttack(move))
+      btn.on('pointerdown', () => this.playerAttack(moveName))
       btn.on('pointerover', () => btn.setColor('#ffffff'))
-      btn.on('pointerout', () => btn.setColor('#FFD700'))
+      btn.on('pointerout', () => btn.setColor(color))
       this.actionButtons.push(btn)
     })
 
@@ -170,13 +185,18 @@ export default class BattleScene extends Phaser.Scene {
     if (this.logText) this.logText.setText(msg)
   }
 
-  private playerAttack(move: string) {
+  private playerAttack(moveName: string) {
     if (this.turnLock) return
     this.turnLock = true
 
-    const damage = this.calcDamage(this.playerPokemon, this.enemyPokemon)
+    const move = getMove(moveName)
+    const { damage, effectiveness } = this.calcDamage(this.playerPokemon, this.enemyPokemon, moveName)
     this.enemyPokemon.takeDamage(damage)
-    this.log(`${this.playerPokemon.name} used ${move}! Dealt ${damage} damage!`)
+    const effLabel = getEffectivenessLabel(effectiveness)
+    this.log(`${this.playerPokemon.name} used ${move.name}! Dealt ${damage} damage! ${effLabel}`)
+    this.flashSprite(this.enemySpriteRef, 0xff0000)
+    this.shakeCamera()
+    this.showDamageNumber(600, 200, damage)
     this.updateHpBars()
 
     if (!this.enemyPokemon.isAlive()) {
@@ -188,10 +208,15 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   private enemyTurn() {
-    const move = this.enemyPokemon.moves[0] || 'Tackle'
-    const damage = this.calcDamage(this.enemyPokemon, this.playerPokemon)
+    const moveName = this.enemyPokemon.moves[Math.floor(Math.random() * this.enemyPokemon.moves.length)] || 'Tackle'
+    const move = getMove(moveName)
+    const { damage, effectiveness } = this.calcDamage(this.enemyPokemon, this.playerPokemon, moveName)
     this.playerPokemon.takeDamage(damage)
-    this.log(`${this.enemyPokemon.name} used ${move}! Dealt ${damage} damage!`)
+    const effLabel = getEffectivenessLabel(effectiveness)
+    this.log(`${this.enemyPokemon.name} used ${move.name}! Dealt ${damage} damage! ${effLabel}`)
+    this.flashSprite(this.playerSpriteRef, 0xff0000)
+    this.shakeCamera()
+    this.showDamageNumber(200, 380, damage)
     this.updateHpBars()
 
     if (!this.playerPokemon.isAlive()) {
@@ -203,10 +228,40 @@ export default class BattleScene extends Phaser.Scene {
     this.time.delayedCall(800, () => this.log('What will you do?'))
   }
 
-  private calcDamage(attacker: Pokemon, defender: Pokemon): number {
-    const base = (attacker.attack * attacker.level) / (defender.defense + 10)
+  private calcDamage(attacker: Pokemon, defender: Pokemon, moveName: string): { damage: number; effectiveness: number } {
+    const move = getMove(moveName)
+    const stab = attacker.type === move.type ? 1.5 : 1
+    const effectiveness = getEffectiveness(move.type, defender.type)
+    const base = (attacker.attack * move.power * attacker.level) / ((defender.defense + 10) * 50)
     const variance = 0.85 + Math.random() * 0.3
-    return Math.max(1, Math.floor(base * variance))
+    const damage = effectiveness === 0 ? 0 : Math.max(1, Math.floor(base * variance * stab * effectiveness))
+    return { damage, effectiveness }
+  }
+
+  private flashSprite(sprite: Phaser.GameObjects.Image | undefined, color: number) {
+    if (!sprite) return
+    sprite.setTint(color)
+    this.time.delayedCall(150, () => sprite?.clearTint())
+  }
+
+  private shakeCamera() {
+    this.cameras.main.shake(150, 0.005)
+  }
+
+  private showDamageNumber(x: number, y: number, dmg: number) {
+    const txt = this.add.text(x, y, `-${dmg}`, {
+      font: 'bold 28px Arial',
+      color: '#ff4444',
+      stroke: '#000',
+      strokeThickness: 4
+    }).setOrigin(0.5)
+    this.tweens.add({
+      targets: txt,
+      y: y - 60,
+      alpha: 0,
+      duration: 800,
+      onComplete: () => txt.destroy()
+    })
   }
 
   private handleEnemyFaint() {

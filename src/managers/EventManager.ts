@@ -1,5 +1,5 @@
 import { PlatformEventType } from '../types'
-import { Platform } from './LevelGenerator'
+import { MapNode } from './LevelGenerator'
 import { Pokemon } from '../entities/Pokemon'
 import { createWildPokemon, createTrainerTeam, createGymLeaderTeam } from '../entities/PokemonFactory'
 
@@ -14,7 +14,7 @@ export interface EventResult {
 }
 
 export default class EventManager {
-  handleEvent(platform: Platform, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string): EventResult {
+  handleEvent(platform: MapNode, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string): EventResult {
     switch (platform.eventType) {
       case PlatformEventType.POKEMON_CAPTURE:
         return this.handleCapture(platform, playerTeam, difficulty)
@@ -31,7 +31,7 @@ export default class EventManager {
     }
   }
 
-  private handleCapture(platform: Platform, playerTeam: Pokemon[], difficulty: number): EventResult {
+  private handleCapture(platform: MapNode, playerTeam: Pokemon[], difficulty: number): EventResult {
     if (playerTeam.length >= 6) {
       return {
         type: PlatformEventType.POKEMON_CAPTURE,
@@ -48,7 +48,7 @@ export default class EventManager {
     }
   }
 
-  private prepareWildBattle(platform: Platform, difficulty: number): EventResult {
+  private prepareWildBattle(platform: MapNode, difficulty: number): EventResult {
     const level = platform.eventData?.level || (2 + difficulty * 2)
     const wild = createWildPokemon(level, platform.eventData?.pokemonId)
     return {
@@ -82,7 +82,7 @@ export default class EventManager {
     }
   }
 
-  private handleItemPickup(platform: Platform): EventResult {
+  private handleItemPickup(platform: MapNode): EventResult {
     const items = ['Potion', 'Super Potion', 'Full Restore', 'Max Revive', 'X Attack']
     const item = items[(platform.eventData?.itemId || 0) % items.length]
     return {

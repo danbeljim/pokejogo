@@ -10,7 +10,8 @@
       "WebFetch(domain:pokelike.xyz)",
       "Bash(chromium-cli --headless --screenshot=screenshot.png http://localhost:3001/)",
       "Bash(base64 -w0)",
-      "Bash(curl -s http://localhost:3001/)"
+      "Bash(curl -s http://localhost:3001/)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

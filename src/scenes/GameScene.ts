@@ -36,6 +36,7 @@ export default class GameScene extends Phaser.Scene {
     preloadSprites(this, ids, false)
     preloadSprites(this, ids, true)
     preloadItemSprites(this)
+    this.generateTallGrassTexture()
 
     // Trainer icon
     if (!this.textures.exists(spriteKey(TRAINER_ICON_DEX, false))) {
@@ -73,6 +74,41 @@ export default class GameScene extends Phaser.Scene {
 
     this.updateHud()
     this.drawLegend()
+  }
+
+  private generateTallGrassTexture() {
+    if (this.textures.exists('tall-grass')) return
+    const g = this.make.graphics({})
+    const size = 40
+
+    // Ground tile background
+    g.fillStyle(0x2d5a1f, 1)
+    g.fillRect(0, 0, size, size)
+
+    // Grass blades (multiple varying heights)
+    const blades = [
+      { x: 4, h: 22, color: 0x6ab04c },
+      { x: 9, h: 28, color: 0x7bc05a },
+      { x: 14, h: 18, color: 0x4a8d36 },
+      { x: 19, h: 32, color: 0x6ab04c },
+      { x: 24, h: 22, color: 0x7bc05a },
+      { x: 29, h: 26, color: 0x4a8d36 },
+      { x: 34, h: 20, color: 0x6ab04c }
+    ]
+
+    blades.forEach(b => {
+      g.fillStyle(b.color, 1)
+      g.fillRect(b.x, size - b.h, 3, b.h)
+      // Tip
+      g.fillStyle(0x9bd970, 1)
+      g.fillRect(b.x, size - b.h, 3, 3)
+    })
+
+    g.lineStyle(2, 0x1a3d10, 1)
+    g.strokeRect(0, 0, size, size)
+
+    g.generateTexture('tall-grass', size, size)
+    g.destroy()
   }
 
   private drawThemedBackground(currentMap: any) {

@@ -142,10 +142,8 @@ export default class PlatformManager {
         scale = 1.8
         break
       case PlatformEventType.WILD_POKEMON:
-        // Random wild pokemon sprite (use event data)
-        const wildId = node.eventData?.pokemonId || 19
-        key = spriteKey(wildId, false)
-        scale = 1.0
+        key = 'tall-grass'
+        scale = 1.1
         break
       case PlatformEventType.TRAINER_BATTLE:
         key = spriteKey(TRAINER_ICON_DEX, false)

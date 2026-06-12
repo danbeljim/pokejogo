@@ -1,27 +1,32 @@
 import Phaser from 'phaser'
 import { GameMap, MapNode } from './LevelGenerator'
 import { PlatformEventType } from '../types'
-import { itemSpriteKey, TRAINER_ICON_DEX } from '../data/GameAssets'
+import { itemSpriteKey, TRAINER_KEYS, trainerSpriteKey, gymLeaderSpriteKey } from '../data/GameAssets'
 import { spriteKey } from '../entities/PokemonFactory'
+import { Pokemon } from '../entities/Pokemon'
 
 export default class PlatformManager {
   private scene: Phaser.Scene
   private map?: GameMap
   private nodeGraphics: Map<number, Phaser.GameObjects.Container> = new Map()
+  private maskShapes: Phaser.GameObjects.Graphics[] = []
   private linesGraphics?: Phaser.GameObjects.Graphics
   private onNodeClick?: (node: MapNode) => void
   private currentNodeId: number = 0
   private bossSignatureDexId: number = 95
+  private bossGymLeaderName: string = 'Brock'
+  private tooltip?: Phaser.GameObjects.GameObject
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
   }
 
-  setMap(map: GameMap, onNodeClick: (node: MapNode) => void, bossSignatureDexId?: number) {
+  setMap(map: GameMap, onNodeClick: (node: MapNode) => void, bossSignatureDexId?: number, bossGymLeaderName?: string) {
     this.map = map
     this.onNodeClick = onNodeClick
     this.currentNodeId = map.startNodeId
     if (bossSignatureDexId) this.bossSignatureDexId = bossSignatureDexId
+    if (bossGymLeaderName) this.bossGymLeaderName = bossGymLeaderName
     this.draw()
   }
 
@@ -47,25 +52,19 @@ export default class PlatformManager {
     // Draw lines first (behind nodes)
     this.linesGraphics = this.scene.add.graphics()
     this.linesGraphics.setDepth(1)
-
-    this.map.nodes.forEach(node => {
-      node.connections.forEach(targetId => {
-        const target = this.map!.nodes[targetId]
-        this.linesGraphics!.lineStyle(2, 0x888888, 0.6)
-        this.linesGraphics!.beginPath()
-        this.linesGraphics!.moveTo(node.x, node.y)
-        this.linesGraphics!.lineTo(target.x, target.y)
-        this.linesGraphics!.strokePath()
-      })
-    })
+    // Connection lines disabled
 
     // Draw nodes
     this.map.nodes.forEach(node => this.drawNode(node))
   }
 
+
   private redrawNodes() {
+    this.hideTrainerTooltip()
     this.nodeGraphics.forEach(c => c.destroy())
     this.nodeGraphics.clear()
+    this.maskShapes.forEach(m => m.destroy())
+    this.maskShapes = []
     if (!this.map) return
     this.map.nodes.forEach(node => this.drawNode(node))
   }
@@ -107,6 +106,15 @@ export default class PlatformManager {
     if (iconSprite) {
       if (node.visited && !isCurrent) iconSprite.setAlpha(0.5)
       container.add(iconSprite)
+
+      // Circular clip mask so all icons stay inside node circle
+      const maskRadius = node.eventType === PlatformEventType.BOSS ? 27 : 21
+      const maskShape = this.scene.make.graphics({ x: node.x, y: node.y }, false)
+      maskShape.fillStyle(0xffffff)
+      maskShape.fillCircle(0, 0, maskRadius)
+      const mask = maskShape.createGeometryMask()
+      iconSprite.setMask(mask)
+      this.maskShapes.push(maskShape)
     } else {
       const icon = this.scene.add.text(0, 0, this.getIconForEventType(node.eventType), {
         font: 'bold 18px Arial',
@@ -115,14 +123,24 @@ export default class PlatformManager {
       container.add(icon)
     }
 
-    if (isClickable) {
+    const isTrainer = node.eventType === PlatformEventType.TRAINER_BATTLE
+    if (isClickable || isTrainer) {
       container.setSize(50, 50)
-      container.setInteractive({ useHandCursor: true })
-      container.on('pointerdown', () => {
-        if (this.onNodeClick) this.onNodeClick(node)
+      container.setInteractive({ useHandCursor: isClickable })
+      if (isClickable) {
+        container.on('pointerdown', () => {
+          this.hideTrainerTooltip()
+          if (this.onNodeClick) this.onNodeClick(node)
+        })
+      }
+      container.on('pointerover', () => {
+        circle.setScale(1.15)
+        if (isTrainer) this.showTrainerTooltip(node)
       })
-      container.on('pointerover', () => circle.setScale(1.15))
-      container.on('pointerout', () => circle.setScale(1.0))
+      container.on('pointerout', () => {
+        circle.setScale(1.0)
+        if (isTrainer) this.hideTrainerTooltip()
+      })
     }
 
     this.nodeGraphics.set(node.id, container)
@@ -145,20 +163,31 @@ export default class PlatformManager {
         key = this.scene.textures.exists('tall-grass-tile') ? 'tall-grass-tile' : 'tall-grass'
         scale = 0.5
         break
-      case PlatformEventType.TRAINER_BATTLE:
-        key = spriteKey(TRAINER_ICON_DEX, false)
-        scale = 1.0
+      case PlatformEventType.TRAINER_BATTLE: {
+        const tk = TRAINER_KEYS[node.id % TRAINER_KEYS.length]
+        key = trainerSpriteKey(tk)
+        scale = 0.9
         break
-      case PlatformEventType.BOSS:
-        key = spriteKey(this.bossSignatureDexId, false)
-        scale = 1.4
+      }
+      case PlatformEventType.BOSS: {
+        const gkey = gymLeaderSpriteKey(this.bossGymLeaderName)
+        if (this.scene.textures.exists(gkey)) {
+          key = gkey
+          scale = 1.4
+        } else {
+          // Fallback to generic rival trainer (NOT pokemon)
+          key = trainerSpriteKey('red')
+          scale = 1.4
+          console.warn('[PlatformManager] gym leader sprite missing:', gkey, 'leader:', this.bossGymLeaderName)
+        }
         break
+      }
     }
 
     if (key && this.scene.textures.exists(key)) {
       const img = this.scene.add.image(0, 0, key)
       if (key === 'tall-grass-tile' || key === 'tall-grass') {
-        img.setDisplaySize(48, 48)
+        img.setDisplaySize(44, 44)
       } else {
         img.setScale(scale)
       }
@@ -195,12 +224,47 @@ export default class PlatformManager {
     }
   }
 
+  private showTrainerTooltip(node: MapNode) {
+    this.hideTrainerTooltip()
+    const team: Pokemon[] = node.eventData?.team || []
+    const header = `Entrenador · ${team.length} Pokémon`
+    const lines = team.length
+      ? team.map(p => `• ${p.name} Nv.${p.level}`)
+      : ['(equipo oculto)']
+    const txt = this.scene.add.text(0, 0, [header, ...lines].join('\n'), {
+      font: '11px Arial',
+      color: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 6, y: 4 }
+    })
+    txt.setDepth(200)
+    const w = txt.width
+    const h = txt.height
+    let x = node.x + 28
+    let y = node.y - h - 24
+    if (x + w > 796) x = node.x - w - 28
+    if (y < 4) y = node.y + 28
+    txt.setPosition(x, y)
+    this.tooltip = txt
+  }
+
+  private hideTrainerTooltip() {
+    if (this.tooltip) {
+      this.tooltip.destroy()
+      this.tooltip = undefined
+    }
+  }
+
   clearMap() {
+    this.hideTrainerTooltip()
     this.nodeGraphics.forEach(c => c.destroy())
     this.nodeGraphics.clear()
+    this.maskShapes.forEach(m => m.destroy())
+    this.maskShapes = []
     if (this.linesGraphics) {
       this.linesGraphics.destroy()
       this.linesGraphics = undefined
     }
   }
 }
+

@@ -61,20 +61,23 @@ export function createWildPokemon(level: number, dexId?: number): Pokemon {
   })
 }
 
-export function createTrainerTeam(difficulty: number): Pokemon[] {
+export function createTrainerTeam(difficulty: number, targetLevel?: number): Pokemon[] {
   const teamSize = Math.min(1 + Math.floor(difficulty / 2), 3)
   const team: Pokemon[] = []
+  const base = targetLevel ?? (3 + difficulty * 2)
   for (let i = 0; i < teamSize; i++) {
-    team.push(createWildPokemon(3 + difficulty * 2))
+    const lvl = Math.max(1, base - i) // first mon strongest
+    team.push(createWildPokemon(lvl))
   }
   return team
 }
 
-export function createGymLeaderTeam(difficulty: number): Pokemon[] {
+export function createGymLeaderTeam(difficulty: number, topLevel?: number): Pokemon[] {
   const teamSize = Math.min(2 + Math.floor(difficulty / 2), 4)
   const team: Pokemon[] = []
+  const cap = topLevel ?? (5 + difficulty * 3)
   for (let i = 0; i < teamSize; i++) {
-    const lvl = 5 + difficulty * 3 + i
+    const lvl = Math.max(2, cap - i)
     const p = createWildPokemon(lvl)
     p.attack += 3
     p.defense += 3

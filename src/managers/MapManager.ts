@@ -16,10 +16,10 @@ export default class MapManager {
   currentMapId: number = 0
   maps: MapConfig[] = [
     {
-      id: 1, name: "Brock's Boulder Badge", gymLeaderName: 'Brock',
+      id: 1, name: "Medalla Roca de Brock", gymLeaderName: 'Brock',
       difficulty: 1, platformCount: 8,
       signaturePokemonDexId: 95, // Onix
-      bgColor: '#5a3a1a', accentColor: '#B8A038', themeName: 'Pewter City - Rocky Mountains'
+      bgColor: '#5a3a1a', accentColor: '#B8A038', themeName: 'Ciudad Plateada - Montañas Rocosas'
     },
     {
       id: 2, name: "Misty's Cascade Badge", gymLeaderName: 'Misty',

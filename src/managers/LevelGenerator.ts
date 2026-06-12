@@ -1,4 +1,6 @@
 import { PlatformEventType } from '../types'
+import { createTrainerTeam } from '../entities/PokemonFactory'
+import { Pokemon } from '../entities/Pokemon'
 
 export interface MapNode {
   id: number
@@ -20,51 +22,38 @@ export interface GameMap {
 }
 
 export default class LevelGenerator {
-  generateLevel(platformCount: number, difficulty: number): GameMap {
-    const rows = Math.max(6, Math.min(10, platformCount))
+  generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5): GameMap {
     const nodes: MapNode[] = []
     const worldWidth = 800
     const worldHeight = 540
     const topMargin = 60
-    const rowSpacing = (worldHeight - topMargin) / (rows + 1)
+    const rows = 5
+    const rowSpacing = (worldHeight - topMargin) / (rows)
 
     let nextId = 0
     const rowNodes: number[][] = []
+    const nodesPerRow = [1, 3, 3, 3, 1]
 
-    // Row 0: single start node
-    const startNode: MapNode = {
-      id: nextId++,
-      x: worldWidth / 2,
-      y: worldHeight - rowSpacing * 0.5,
-      row: 0,
-      col: 0,
-      eventType: PlatformEventType.POKEMON_CAPTURE,
-      eventData: { pokemonId: 25 },
-      connections: [],
-      visited: true
-    }
-    nodes.push(startNode)
-    rowNodes.push([startNode.id])
-
-    // Middle rows: 2-3 nodes each
-    for (let r = 1; r < rows - 1; r++) {
-      const cols = 2 + Math.floor(Math.random() * 2)
+    for (let r = 0; r < rows; r++) {
+      const cols = nodesPerRow[r]
       const y = worldHeight - rowSpacing * (r + 0.5)
       const rowSlots: number[] = []
       const colWidth = (worldWidth - 100) / cols
 
       for (let c = 0; c < cols; c++) {
-        const eventType = this.getRandomEvent(difficulty)
+        const eventType = r === 0 ? PlatformEventType.POKEMON_CAPTURE :
+                          r === rows - 1 ? PlatformEventType.BOSS :
+                          this.getRandomEvent(difficulty)
         const node: MapNode = {
           id: nextId++,
-          x: 50 + colWidth * (c + 0.5) + (Math.random() * 40 - 20),
-          y: y + (Math.random() * 20 - 10),
+          x: 50 + colWidth * (c + 0.5),
+          y: y,
           row: r,
           col: c,
           eventType,
-          eventData: this.generateEventData(eventType),
+          eventData: r === 0 ? { pokemonId: 25 } : this.generateEventData(eventType, difficulty, r, rows, playerMaxLevel),
           connections: [],
-          visited: false
+          visited: r === 0
         }
         nodes.push(node)
         rowSlots.push(node.id)
@@ -72,19 +61,8 @@ export default class LevelGenerator {
       rowNodes.push(rowSlots)
     }
 
-    // Boss row
-    const bossNode: MapNode = {
-      id: nextId++,
-      x: worldWidth / 2,
-      y: topMargin,
-      row: rows - 1,
-      col: 0,
-      eventType: PlatformEventType.BOSS,
-      connections: [],
-      visited: false
-    }
-    nodes.push(bossNode)
-    rowNodes.push([bossNode.id])
+    const startNodeId = nodes.find(n => n.eventType === PlatformEventType.POKEMON_CAPTURE)?.id || 0
+    const bossNodeId = nodes.find(n => n.eventType === PlatformEventType.BOSS)?.id || nodes.length - 1
 
     // Build connections: each node connects to 1-2 nodes in next row
     for (let r = 0; r < rows - 1; r++) {
@@ -119,8 +97,8 @@ export default class LevelGenerator {
     return {
       nodes,
       rows,
-      startNodeId: startNode.id,
-      bossNodeId: bossNode.id
+      startNodeId,
+      bossNodeId
     }
   }
 
@@ -132,14 +110,23 @@ export default class LevelGenerator {
     return PlatformEventType.ITEM_PICKUP
   }
 
-  private generateEventData(eventType: PlatformEventType): any {
+  private generateEventData(eventType: PlatformEventType, difficulty: number, row: number, rows: number, playerMaxLevel: number): any {
+    // Scaled enemy level: ramps from low (row 1) to playerMaxLevel-1 (last middle row).
+    // Always strictly under player's strongest.
+    const middleRows = Math.max(1, rows - 2)
+    const progress = Math.min(1, row / middleRows) // 0..1
+    const floor = Math.max(2, playerMaxLevel - difficulty - 2)
+    const ceil = Math.max(floor, playerMaxLevel - 1)
+    const scaledLevel = Math.round(floor + (ceil - floor) * progress)
     switch (eventType) {
       case PlatformEventType.POKEMON_CAPTURE:
         return { pokemonId: undefined }
-      case PlatformEventType.TRAINER_BATTLE:
-        return { trainerLevel: Math.floor(Math.random() * 10) + 5 }
+      case PlatformEventType.TRAINER_BATTLE: {
+        const team: Pokemon[] = createTrainerTeam(difficulty, scaledLevel)
+        return { trainerLevel: scaledLevel, team }
+      }
       case PlatformEventType.WILD_POKEMON:
-        return { pokemonId: undefined, level: Math.floor(Math.random() * 5) + 1 }
+        return { pokemonId: undefined, level: scaledLevel }
       case PlatformEventType.ITEM_PICKUP:
         return { itemId: Math.floor(Math.random() * 5) }
       default:

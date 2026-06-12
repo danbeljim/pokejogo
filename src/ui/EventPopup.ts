@@ -22,7 +22,14 @@ export default class EventPopup {
 
     const bg = this.scene.add.image(400, 300, 'popup-bg')
 
-    const title = this.scene.add.text(400, 150, result.type.toUpperCase(), {
+    const typeLabel: Record<string, string> = {
+      capture: 'CAPTURA',
+      trainer: 'ENTRENADOR',
+      wild: 'SALVAJE',
+      item: 'OBJETO',
+      boss: 'LÍDER DE GIMNASIO'
+    }
+    const title = this.scene.add.text(400, 150, typeLabel[result.type] || result.type.toUpperCase(), {
       font: 'bold 24px Arial',
       color: '#FFD700'
     }).setOrigin(0.5)
@@ -33,7 +40,7 @@ export default class EventPopup {
       wordWrap: { width: 600 }
     }).setOrigin(0.5)
 
-    const continueText = this.scene.add.text(400, 450, 'Press SPACE to continue', {
+    const continueText = this.scene.add.text(400, 450, 'Pulsa ESPACIO para continuar', {
       font: '14px Arial',
       color: '#CCCCCC'
     }).setOrigin(0.5)

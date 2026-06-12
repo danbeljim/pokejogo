@@ -23,12 +23,12 @@ export default class StartScene extends Phaser.Scene {
       strokeThickness: 6
     }).setOrigin(0.5)
 
-    this.add.text(400, 130, '8 Gyms. 8 Medals. One Run.', {
+    this.add.text(400, 130, '8 Gimnasios. 8 Medallas. Una Partida.', {
       font: '16px Arial',
       color: '#cccccc'
     }).setOrigin(0.5)
 
-    this.add.text(400, 200, 'Choose your starter:', {
+    this.add.text(400, 200, 'Elige tu inicial:', {
       font: '20px Arial',
       color: '#ffffff'
     }).setOrigin(0.5)
@@ -57,7 +57,7 @@ export default class StartScene extends Phaser.Scene {
         color: TYPE_COLORS[starter.type]
       }).setOrigin(0.5)
 
-      const btn = this.add.text(x, y + 130, '[Choose]', {
+      const btn = this.add.text(x, y + 130, '[Elegir]', {
         font: 'bold 14px Arial',
         color: '#FFD700',
         backgroundColor: '#222',
@@ -71,7 +71,7 @@ export default class StartScene extends Phaser.Scene {
       })
     })
 
-    this.add.text(400, 560, 'Click nodes to advance. Beat 8 gym leaders to win!', {
+    this.add.text(400, 560, 'Pulsa los nodos para avanzar. ¡Derrota a 8 líderes para ganar!', {
       font: '13px Arial',
       color: '#888888'
     }).setOrigin(0.5)

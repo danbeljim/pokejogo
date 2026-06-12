@@ -25,6 +25,8 @@ export default class BattleScene extends Phaser.Scene {
   private playerIdx: number = 0
   private enemyIdx: number = 0
   private actionButtons: Phaser.GameObjects.Text[] = []
+  private speedMul: number = 1
+  private speedBtn?: Phaser.GameObjects.Text
 
   constructor() {
     super('BattleScene')
@@ -35,6 +37,17 @@ export default class BattleScene extends Phaser.Scene {
     this.playerIdx = 0
     this.enemyIdx = 0
     this.turnLock = false
+    this.speedMul = 1
+    this.speedBtn = undefined
+    this.actionButtons = []
+    this.currentSprites = []
+    this.playerSpriteRef = undefined
+    this.enemySpriteRef = undefined
+    this.playerHpText = undefined
+    this.enemyHpText = undefined
+    this.playerHpBar = undefined
+    this.enemyHpBar = undefined
+    this.logText = undefined
   }
 
   create() {
@@ -44,10 +57,10 @@ export default class BattleScene extends Phaser.Scene {
     this.enemyPokemon = this.battleData.enemyTeam[this.enemyIdx]
 
     const title = this.battleData.battleType === 'boss'
-      ? `Gym Leader ${this.battleData.gymLeaderName}!`
+      ? `¡Líder de Gimnasio ${this.battleData.gymLeaderName}!`
       : this.battleData.battleType === 'trainer'
-      ? 'Trainer Battle!'
-      : 'Wild Pokémon Battle!'
+      ? '¡Combate contra Entrenador!'
+      : '¡Pokémon Salvaje!'
 
     this.add.text(400, 30, title, {
       font: 'bold 22px Arial',
@@ -57,7 +70,7 @@ export default class BattleScene extends Phaser.Scene {
     // Enemy (top right) - front sprite
     this.drawSprite(600, 200, this.enemyPokemon, false)
     this.enemyHpText = this.add.text(400, 130,
-      `${this.enemyPokemon.name} Lv.${this.enemyPokemon.level}`, {
+      `${this.enemyPokemon.name} Nv.${this.enemyPokemon.level}`, {
       font: '16px Arial',
       color: '#ffffff'
     })
@@ -66,7 +79,7 @@ export default class BattleScene extends Phaser.Scene {
     // Player (bottom left) - back sprite
     this.drawSprite(200, 380, this.playerPokemon, true)
     this.playerHpText = this.add.text(80, 330,
-      `${this.playerPokemon.name} Lv.${this.playerPokemon.level}`, {
+      `${this.playerPokemon.name} Nv.${this.playerPokemon.level}`, {
       font: '16px Arial',
       color: '#ffffff'
     })
@@ -75,13 +88,40 @@ export default class BattleScene extends Phaser.Scene {
     this.updateHpBars()
 
     // Log
-    this.logText = this.add.text(400, 460, 'What will you do?', {
+    this.logText = this.add.text(400, 460, '¿Qué vas a hacer?', {
       font: '16px Arial',
       color: '#ffffff',
       wordWrap: { width: 700 }
     }).setOrigin(0.5)
 
     this.drawActions()
+    this.drawSpeedToggle()
+  }
+
+  private drawSpeedToggle() {
+    const render = () => {
+      const label = this.speedMul === 1 ? 'Velocidad x1' : 'Velocidad x2'
+      const color = this.speedMul === 1 ? '#ffffff' : '#FFD700'
+      if (!this.speedBtn) {
+        this.speedBtn = this.add.text(720, 30, label, {
+          font: 'bold 13px Arial',
+          color,
+          backgroundColor: '#222',
+          padding: { x: 8, y: 4 }
+        }).setOrigin(0.5).setDepth(50).setInteractive({ useHandCursor: true })
+        this.speedBtn.on('pointerdown', () => {
+          this.speedMul = this.speedMul === 1 ? 2 : 1
+          render()
+        })
+      } else {
+        this.speedBtn.setText(label).setColor(color)
+      }
+    }
+    render()
+  }
+
+  private wait(ms: number, cb: () => void) {
+    this.time.delayedCall(ms / this.speedMul, cb)
   }
 
   private currentSprites: Phaser.GameObjects.Image[] = []
@@ -132,12 +172,12 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.playerHpText) {
       const pType = `[${this.playerPokemon.type.toUpperCase()}]`
-      this.playerHpText.setText(`${this.playerPokemon.name} ${pType} Lv.${this.playerPokemon.level}  HP: ${this.playerPokemon.hp}/${this.playerPokemon.maxHp}`)
+      this.playerHpText.setText(`${this.playerPokemon.name} ${pType} Nv.${this.playerPokemon.level}  HP: ${this.playerPokemon.hp}/${this.playerPokemon.maxHp}`)
       this.playerHpText.setColor(TYPE_COLORS[this.playerPokemon.type])
     }
     if (this.enemyHpText) {
       const eType = `[${this.enemyPokemon.type.toUpperCase()}]`
-      this.enemyHpText.setText(`${this.enemyPokemon.name} ${eType} Lv.${this.enemyPokemon.level}  HP: ${this.enemyPokemon.hp}/${this.enemyPokemon.maxHp}`)
+      this.enemyHpText.setText(`${this.enemyPokemon.name} ${eType} Nv.${this.enemyPokemon.level}  HP: ${this.enemyPokemon.hp}/${this.enemyPokemon.maxHp}`)
       this.enemyHpText.setColor(TYPE_COLORS[this.enemyPokemon.type])
     }
   }
@@ -165,7 +205,7 @@ export default class BattleScene extends Phaser.Scene {
       this.actionButtons.push(btn)
     })
 
-    const runBtn = this.add.text(700, yStart, '[Run]', {
+    const runBtn = this.add.text(700, yStart, '[Huir]', {
       font: '18px Arial',
       color: '#ff8888',
       backgroundColor: '#222',
@@ -175,7 +215,7 @@ export default class BattleScene extends Phaser.Scene {
       if (this.battleData.battleType === 'wild') {
         this.endBattle(false)
       } else {
-        this.log("Can't run from this battle!")
+        this.log("¡No puedes huir de este combate!")
       }
     })
     this.actionButtons.push(runBtn)
@@ -193,18 +233,18 @@ export default class BattleScene extends Phaser.Scene {
     const { damage, effectiveness } = this.calcDamage(this.playerPokemon, this.enemyPokemon, moveName)
     this.enemyPokemon.takeDamage(damage)
     const effLabel = getEffectivenessLabel(effectiveness)
-    this.log(`${this.playerPokemon.name} used ${move.name}! Dealt ${damage} damage! ${effLabel}`)
+    this.log(`¡${this.playerPokemon.name} usó ${move.name}! Hizo ${damage} de daño. ${effLabel}`)
     this.flashSprite(this.enemySpriteRef, 0xff0000)
     this.shakeCamera()
     this.showDamageNumber(600, 200, damage)
     this.updateHpBars()
 
     if (!this.enemyPokemon.isAlive()) {
-      this.time.delayedCall(900, () => this.handleEnemyFaint())
+      this.wait(900, () => this.handleEnemyFaint())
       return
     }
 
-    this.time.delayedCall(1000, () => this.enemyTurn())
+    this.wait(1000, () => this.enemyTurn())
   }
 
   private enemyTurn() {
@@ -213,19 +253,19 @@ export default class BattleScene extends Phaser.Scene {
     const { damage, effectiveness } = this.calcDamage(this.enemyPokemon, this.playerPokemon, moveName)
     this.playerPokemon.takeDamage(damage)
     const effLabel = getEffectivenessLabel(effectiveness)
-    this.log(`${this.enemyPokemon.name} used ${move.name}! Dealt ${damage} damage! ${effLabel}`)
+    this.log(`¡${this.enemyPokemon.name} enemigo usó ${move.name}! Hizo ${damage} de daño. ${effLabel}`)
     this.flashSprite(this.playerSpriteRef, 0xff0000)
     this.shakeCamera()
     this.showDamageNumber(200, 380, damage)
     this.updateHpBars()
 
     if (!this.playerPokemon.isAlive()) {
-      this.time.delayedCall(900, () => this.handlePlayerFaint())
+      this.wait(900, () => this.handlePlayerFaint())
       return
     }
 
     this.turnLock = false
-    this.time.delayedCall(800, () => this.log('What will you do?'))
+    this.wait(800, () => this.log('¿Qué vas a hacer?'))
   }
 
   private calcDamage(attacker: Pokemon, defender: Pokemon, moveName: string): { damage: number; effectiveness: number } {
@@ -241,7 +281,7 @@ export default class BattleScene extends Phaser.Scene {
   private flashSprite(sprite: Phaser.GameObjects.Image | undefined, color: number) {
     if (!sprite) return
     sprite.setTint(color)
-    this.time.delayedCall(150, () => sprite?.clearTint())
+    this.wait(150, () => sprite?.clearTint())
   }
 
   private shakeCamera() {
@@ -259,20 +299,20 @@ export default class BattleScene extends Phaser.Scene {
       targets: txt,
       y: y - 60,
       alpha: 0,
-      duration: 800,
+      duration: 800 / this.speedMul,
       onComplete: () => txt.destroy()
     })
   }
 
   private handleEnemyFaint() {
-    this.log(`${this.enemyPokemon.name} fainted!`)
+    this.log(`¡${this.enemyPokemon.name} enemigo se debilitó!`)
     this.enemyIdx++
     if (this.enemyIdx >= this.battleData.enemyTeam.length) {
-      this.time.delayedCall(1000, () => this.endBattle(true))
+      this.wait(1000, () => this.endBattle(true))
     } else {
       this.enemyPokemon = this.battleData.enemyTeam[this.enemyIdx]
-      this.time.delayedCall(1000, () => {
-        this.log(`Enemy sent out ${this.enemyPokemon.name}!`)
+      this.wait(1000, () => {
+        this.log(`¡El rival envía a ${this.enemyPokemon.name}!`)
         this.clearSprites()
         this.drawSprite(600, 200, this.enemyPokemon, false)
         this.drawSprite(200, 380, this.playerPokemon, true)
@@ -283,16 +323,16 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   private handlePlayerFaint() {
-    this.log(`${this.playerPokemon.name} fainted!`)
+    this.log(`¡${this.playerPokemon.name} se debilitó!`)
     this.playerIdx++
     const alive = this.battleData.playerTeam.findIndex((p, i) => i >= this.playerIdx && p.isAlive())
     if (alive === -1) {
-      this.time.delayedCall(1000, () => this.endBattle(false))
+      this.wait(1000, () => this.endBattle(false))
     } else {
       this.playerIdx = alive
       this.playerPokemon = this.battleData.playerTeam[this.playerIdx]
-      this.time.delayedCall(1000, () => {
-        this.log(`You sent out ${this.playerPokemon.name}!`)
+      this.wait(1000, () => {
+        this.log(`¡Adelante, ${this.playerPokemon.name}!`)
         this.clearSprites()
         this.drawSprite(600, 200, this.enemyPokemon, false)
         this.drawSprite(200, 380, this.playerPokemon, true)
@@ -304,11 +344,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   private endBattle(won: boolean) {
-    this.log(won ? 'Victory!' : 'Defeat...')
-    this.time.delayedCall(1500, () => {
-      this.battleData.onComplete(won)
-      this.scene.stop()
+    this.log(won ? '¡Victoria!' : 'Derrota...')
+    this.wait(1500, () => {
+      const cb = this.battleData.onComplete
       this.scene.resume('GameScene')
+      this.scene.stop()
+      cb(won)
     })
   }
 }
+

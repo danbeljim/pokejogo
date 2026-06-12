@@ -3,12 +3,21 @@ import GameScene from './scenes/GameScene'
 import BattleScene from './scenes/BattleScene'
 import StartScene from './scenes/StartScene'
 import ItemPickerScene from './scenes/ItemPickerScene'
+import BagScene from './scenes/BagScene'
+import TeamOrderScene from './scenes/TeamOrderScene'
+import CaptureScene from './scenes/CaptureScene'
 
 const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.CANVAS,
+  type: Phaser.AUTO,
   width: 800,
   height: 600,
   backgroundColor: '#000000',
+  render: {
+    pixelArt: true,
+    antialias: false,
+    powerPreference: 'high-performance'
+  },
+  fps: { target: 60, forceSetTimeOut: false },
   physics: {
     default: 'arcade',
     arcade: {
@@ -16,7 +25,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [StartScene, GameScene, BattleScene, ItemPickerScene]
+  scene: [StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene]
 }
 
 new Phaser.Game(config)

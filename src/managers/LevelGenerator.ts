@@ -28,21 +28,30 @@ export default class LevelGenerator {
     const worldHeight = 540
     const topMargin = 60
     const rows = 5
-    const rowSpacing = (worldHeight - topMargin) / (rows - 1)
+    const rowSpacing = (worldHeight - topMargin) / (rows + 1)
 
     let nextId = 0
     const rowNodes: number[][] = []
     const nodesPerRow = [1, 3, 3, 3, 1]
 
-    // Position nodes in diamond grid
+    // Position nodes in centered diamond grid
     for (let r = 0; r < rows; r++) {
       const cols = nodesPerRow[r]
-      const y = topMargin + rowSpacing * r
+      const y = worldHeight - rowSpacing * (r + 0.5)
       const rowSlots: number[] = []
-      const colWidth = cols > 1 ? (worldWidth - 100) / (cols - 1) : 0
+
+      // Center the row based on number of columns
+      let colWidth = 0
+      let startX = 0
+      if (cols === 1) {
+        startX = worldWidth / 2
+      } else {
+        colWidth = 300 / (cols - 1)
+        startX = worldWidth / 2 - 150
+      }
 
       for (let c = 0; c < cols; c++) {
-        const x = cols === 1 ? worldWidth / 2 : 100 + colWidth * c
+        const x = cols === 1 ? startX : startX + colWidth * c
         const eventType = r === 0 ? PlatformEventType.POKEMON_CAPTURE :
                           r === rows - 1 ? PlatformEventType.BOSS :
                           this.getRandomEvent(difficulty)
@@ -66,18 +75,33 @@ export default class LevelGenerator {
     const startNodeId = nodes.find(n => n.eventType === PlatformEventType.POKEMON_CAPTURE)?.id || 0
     const bossNodeId = nodes.find(n => n.eventType === PlatformEventType.BOSS)?.id || nodes.length - 1
 
-    // Connect nodes: each node connects to nearby nodes (distance-based)
-    const connectionDistance = 200
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const n1 = nodes[i]
-        const n2 = nodes[j]
-        const dist = Math.sqrt((n1.x - n2.x) ** 2 + (n1.y - n2.y) ** 2)
-        // Connect if close enough and n2 is below n1 (forward direction)
-        if (dist <= connectionDistance && n2.row > n1.row) {
-          n1.connections.push(n2.id)
+    // Build connections: each node connects to nearest nodes in next row
+    for (let r = 0; r < rows - 1; r++) {
+      const current = rowNodes[r]
+      const next = rowNodes[r + 1]
+
+      current.forEach(nodeId => {
+        const node = nodes[nodeId]
+        // Find 1-3 closest nodes in next row
+        const sorted = next
+          .map(id => ({ id, dist: Math.abs(nodes[id].x - node.x) }))
+          .sort((a, b) => a.dist - b.dist)
+        const numConn = Math.min(2, sorted.length)
+        for (let i = 0; i < numConn; i++) {
+          node.connections.push(sorted[i].id)
         }
-      }
+      })
+
+      // Ensure every next-row node has at least one incoming connection
+      next.forEach(nextId => {
+        const hasIncoming = current.some(cId => nodes[cId].connections.includes(nextId))
+        if (!hasIncoming) {
+          const closest = current
+            .map(id => ({ id, dist: Math.abs(nodes[id].x - nodes[nextId].x) }))
+            .sort((a, b) => a.dist - b.dist)[0]
+          nodes[closest.id].connections.push(nextId)
+        }
+      })
     }
 
     return {

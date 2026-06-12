@@ -2,131 +2,131 @@ import Phaser from 'phaser'
 import { REGIONS } from '../data/Regions'
 
 export default class MainMenuScene extends Phaser.Scene {
+  private selectedIdx: number = 0
+
   constructor() {
     super('MainMenuScene')
   }
 
   create() {
-    // Fondo con degradado Pokéball-inspired
-    const graphics = this.make.graphics({ x: 0, y: 0 })
-    graphics.fillStyle(0xff0000, 1)
-    graphics.fillRect(0, 0, 800, 300)
-    graphics.fillStyle(0xffffff, 1)
-    graphics.fillRect(0, 300, 800, 600)
-    graphics.generateTexture('pokeball_bg', 800, 600)
-    graphics.destroy()
+    // Fondo estilo Pokémon Gen 2/3
+    const bg = this.add.graphics()
+    bg.fillStyle(0x3860d8, 1)
+    bg.fillRect(0, 0, 800, 600)
+    bg.destroy()
 
-    this.add.image(400, 300, 'pokeball_bg').setOrigin(0.5, 0.5)
+    // Panel superior (info)
+    const topPanel = this.add.graphics()
+    topPanel.fillStyle(0xe8d8c0, 1)
+    topPanel.fillRect(0, 0, 800, 140)
+    topPanel.lineStyle(2, 0x000000, 1)
+    topPanel.strokeRect(0, 0, 800, 140)
 
-    // Efecto de brillo decorativo
-    const circle1 = this.add.circle(100, 100, 150, 0xff6b6b, 0.1)
-    const circle2 = this.add.circle(700, 500, 120, 0x4169e1, 0.1)
-
-    // Título principal
-    this.add.text(400, 35, 'POKÉMON', {
-      font: 'bold 44px Arial',
-      color: '#ffffff',
-      stroke: '#cc0000',
-      strokeThickness: 4
+    // Título
+    this.add.text(400, 20, 'POKÉMON ROGUELIKE', {
+      font: 'bold 20px Arial',
+      color: '#000000'
     }).setOrigin(0.5)
 
-    this.add.text(400, 75, 'ROGUELIKE', {
-      font: 'bold 44px Arial',
-      color: '#cc0000',
-      stroke: '#ffff00',
-      strokeThickness: 4
-    }).setOrigin(0.5)
-
-    // Subtítulo con wordWrap
-    this.add.text(400, 115, 'Selecciona una región para comenzar tu aventura', {
+    this.add.text(400, 50, 'Selecciona una región para comenzar', {
       font: 'bold 12px Arial',
-      color: '#333333',
-      wordWrap: { width: 600 },
-      align: 'center'
+      color: '#000000'
     }).setOrigin(0.5)
 
-    // Regiones
-    REGIONS.forEach((region, i) => {
-      const y = 200 + i * 130
+    // Icono/sprite zona izquierda (simulado con rectángulo colorido)
+    const iconBg = this.add.graphics()
+    iconBg.fillStyle(0xf8d8a8, 1)
+    iconBg.fillRoundedRect(20, 160, 140, 380, 4)
+    iconBg.lineStyle(2, 0x000000, 1)
+    iconBg.strokeRoundedRect(20, 160, 140, 380, 4)
 
-      // Fondo degradado para cada región
-      const regionBg = this.add.graphics()
-      regionBg.fillStyle(0xffeb3b, 0.15)
-      regionBg.fillRoundedRect(20, y - 40, 760, 100, 12)
-      regionBg.lineStyle(3, 0xffc107, 1)
-      regionBg.strokeRoundedRect(20, y - 40, 760, 100, 12)
+    // Decoración icono (simular un badge o Pokéball)
+    const iconDecor = this.add.graphics()
+    iconDecor.fillStyle(0xff0000, 1)
+    iconDecor.fillCircle(90, 220, 35)
+    iconDecor.fillStyle(0xffffff, 1)
+    iconDecor.fillCircle(90, 220, 30)
+    iconDecor.fillStyle(0x000000, 1)
+    iconDecor.fillCircle(90, 220, 25)
+    iconDecor.fillStyle(0xffffff, 1)
+    iconDecor.fillCircle(90, 220, 20)
 
-      // Borde decorativo
-      regionBg.lineStyle(2, 0xff6b00, 1)
-      regionBg.strokeRoundedRect(25, y - 35, 750, 90, 10)
+    this.add.text(90, 330, 'REGIONES', {
+      font: 'bold 10px Arial',
+      color: '#000000'
+    }).setOrigin(0.5)
 
-      // Badge decorativo (a la izquierda)
-      const badge = this.add.graphics()
-      badge.fillStyle(0xff6b00, 1)
-      badge.fillCircle(50, y, 18)
-      badge.fillStyle(0xffffff, 1)
-      badge.fillCircle(50, y, 13)
-      badge.fillStyle(0xff6b00, 1)
-      badge.fillCircle(50, y, 8)
+    // Panel derecho (lista de regiones)
+    const listBg = this.add.graphics()
+    listBg.fillStyle(0xf8f0e0, 1)
+    listBg.fillRect(180, 160, 600, 380)
+    listBg.lineStyle(2, 0x000000, 1)
+    listBg.strokeRect(180, 160, 600, 380)
 
-      this.add.text(50, y, '⭐', {
-        font: 'bold 14px Arial',
-        color: '#ffff00'
-      }).setOrigin(0.5)
-
-      // Nombre de región con estilo
-      this.add.text(90, y - 15, region.name, {
-        font: 'bold 28px Arial',
-        color: '#ff6b00'
-      })
-
-      // Descripción
-      this.add.text(90, y + 8, region.description, {
-        font: 'bold 12px Arial',
-        color: '#333333',
-        wordWrap: { width: 450 }
-      })
-
-      // Botón de inicio (a la derecha)
-      const btnBg = this.add.graphics()
-      btnBg.fillStyle(0xff0000, 1)
-      btnBg.fillRoundedRect(680, y - 22, 70, 44, 6)
-      btnBg.lineStyle(2, 0xffff00, 1)
-      btnBg.strokeRoundedRect(680, y - 22, 70, 44, 6)
-
-      const btn = this.add.text(715, y, 'JUGAR', {
-        font: 'bold 12px Arial',
-        color: '#ffff00'
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true })
-
-      btn.on('pointerover', () => {
-        btn.setColor('#ffffff')
-        btn.setScale(1.05)
-        btnBg.clear()
-        btnBg.fillStyle(0xcc0000, 1)
-        btnBg.fillRoundedRect(680, y - 22, 70, 44, 6)
-        btnBg.lineStyle(3, 0xffff00, 1)
-        btnBg.strokeRoundedRect(680, y - 22, 70, 44, 6)
-      })
-
-      btn.on('pointerout', () => {
-        btn.setColor('#ffff00')
-        btn.setScale(1)
-        btnBg.clear()
-        btnBg.fillStyle(0xff0000, 1)
-        btnBg.fillRoundedRect(680, y - 22, 70, 44, 6)
-        btnBg.lineStyle(2, 0xffff00, 1)
-        btnBg.strokeRoundedRect(680, y - 22, 70, 44, 6)
-      })
-
-      btn.on('pointerdown', () => this.selectRegion(region.id))
+    // Título de lista
+    this.add.text(190, 175, 'Disponibles:', {
+      font: 'bold 10px Arial',
+      color: '#000000'
     })
 
-    // Footer decorativo
-    this.add.text(400, 570, '🔴 ⚫ 🔵 Aventura te espera 🔵 ⚫ 🔴', {
-      font: 'bold 11px Arial',
-      color: '#666666'
-    }).setOrigin(0.5)
+    // Regiones como items de lista
+    REGIONS.forEach((region, i) => {
+      const y = 210 + i * 50
+      const isSelected = i === this.selectedIdx
+
+      // Fondo selección
+      if (isSelected) {
+        const selBg = this.add.graphics()
+        selBg.fillStyle(0x6888d8, 1)
+        selBg.fillRect(185, y - 5, 590, 45)
+      }
+
+      // Nombre región
+      this.add.text(200, y + 5, region.name, {
+        font: `bold ${isSelected ? 12 : 10}px Arial`,
+        color: isSelected ? '#ffffff' : '#000000'
+      })
+
+      // Cantidad simulada (como si fuera un item)
+      this.add.text(750, y + 5, 'x001', {
+        font: `${isSelected ? 'bold' : ''} 10px Arial`,
+        color: isSelected ? '#ffffff' : '#000000'
+      }).setOrigin(1, 0)
+
+      // Zona interactiva
+      const zone = this.add.zone(185, y + 17, 590, 45)
+        .setOrigin(0, 0)
+        .setInteractive({ useHandCursor: true })
+
+      zone.on('pointerdown', () => {
+        this.selectedIdx = i
+        this.scene.restart()
+      })
+
+      zone.on('pointerover', () => {
+        zone.setScale(1.02)
+      })
+
+      zone.on('pointerout', () => {
+        zone.setScale(1)
+      })
+    })
+
+    // Panel inferior (acción)
+    const bottomPanel = this.add.graphics()
+    bottomPanel.fillStyle(0x3860d8, 1)
+    bottomPanel.fillRect(0, 540, 800, 60)
+
+    const startBtn = this.add.text(400, 570, '▶ EMPEZAR AVENTURA', {
+      font: 'bold 14px Arial',
+      color: '#ffff00',
+      backgroundColor: '#000000',
+      padding: { x: 20, y: 8 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+
+    startBtn.on('pointerover', () => startBtn.setColor('#ffffff'))
+    startBtn.on('pointerout', () => startBtn.setColor('#ffff00'))
+    startBtn.on('pointerdown', () => this.selectRegion(REGIONS[this.selectedIdx].id))
   }
 
   private selectRegion(regionId: number) {

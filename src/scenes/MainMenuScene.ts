@@ -23,88 +23,90 @@ export default class MainMenuScene extends Phaser.Scene {
     const circle2 = this.add.circle(700, 500, 120, 0x4169e1, 0.1)
 
     // Título principal
-    const title = this.add.text(400, 50, 'POKÉMON', {
-      font: 'bold 48px Arial',
+    this.add.text(400, 35, 'POKÉMON', {
+      font: 'bold 44px Arial',
       color: '#ffffff',
       stroke: '#cc0000',
       strokeThickness: 4
     }).setOrigin(0.5)
 
-    this.add.text(400, 95, 'ROGUELIKE', {
-      font: 'bold 48px Arial',
+    this.add.text(400, 75, 'ROGUELIKE', {
+      font: 'bold 44px Arial',
       color: '#cc0000',
       stroke: '#ffff00',
       strokeThickness: 4
     }).setOrigin(0.5)
 
-    // Subtítulo
-    this.add.text(400, 150, 'Selecciona una región para comenzar tu aventura', {
-      font: 'bold 14px Arial',
-      color: '#333333'
+    // Subtítulo con wordWrap
+    this.add.text(400, 115, 'Selecciona una región para comenzar tu aventura', {
+      font: 'bold 12px Arial',
+      color: '#333333',
+      wordWrap: { width: 600 },
+      align: 'center'
     }).setOrigin(0.5)
 
     // Regiones
     REGIONS.forEach((region, i) => {
-      const y = 250 + i * 140
+      const y = 200 + i * 130
 
       // Fondo degradado para cada región
       const regionBg = this.add.graphics()
       regionBg.fillStyle(0xffeb3b, 0.15)
-      regionBg.fillRoundedRect(80, y - 50, 640, 120, 12)
+      regionBg.fillRoundedRect(20, y - 40, 760, 100, 12)
       regionBg.lineStyle(3, 0xffc107, 1)
-      regionBg.strokeRoundedRect(80, y - 50, 640, 120, 12)
+      regionBg.strokeRoundedRect(20, y - 40, 760, 100, 12)
 
       // Borde decorativo
       regionBg.lineStyle(2, 0xff6b00, 1)
-      regionBg.strokeRoundedRect(85, y - 45, 630, 110, 10)
+      regionBg.strokeRoundedRect(25, y - 35, 750, 90, 10)
 
-      // Nombre de región con estilo
-      const nameText = this.add.text(120, y - 20, region.name, {
-        font: 'bold 32px Arial',
-        color: '#ff6b00'
-      })
-
-      // Badge decorativo
+      // Badge decorativo (a la izquierda)
       const badge = this.add.graphics()
       badge.fillStyle(0xff6b00, 1)
-      badge.fillCircle(70, y - 20, 20)
+      badge.fillCircle(50, y, 18)
       badge.fillStyle(0xffffff, 1)
-      badge.fillCircle(70, y - 20, 15)
+      badge.fillCircle(50, y, 13)
       badge.fillStyle(0xff6b00, 1)
-      badge.fillCircle(70, y - 20, 10)
+      badge.fillCircle(50, y, 8)
 
-      this.add.text(70, y - 20, '⭐', {
-        font: 'bold 16px Arial',
+      this.add.text(50, y, '⭐', {
+        font: 'bold 14px Arial',
         color: '#ffff00'
       }).setOrigin(0.5)
 
-      // Descripción
-      this.add.text(120, y + 12, region.description, {
-        font: 'bold 13px Arial',
-        color: '#333333',
-        wordWrap: { width: 480 }
+      // Nombre de región con estilo
+      this.add.text(90, y - 15, region.name, {
+        font: 'bold 28px Arial',
+        color: '#ff6b00'
       })
 
-      // Botón de inicio
+      // Descripción
+      this.add.text(90, y + 8, region.description, {
+        font: 'bold 12px Arial',
+        color: '#333333',
+        wordWrap: { width: 450 }
+      })
+
+      // Botón de inicio (a la derecha)
       const btnBg = this.add.graphics()
       btnBg.fillStyle(0xff0000, 1)
-      btnBg.fillRoundedRect(580, y - 20, 120, 50, 8)
+      btnBg.fillRoundedRect(680, y - 22, 70, 44, 6)
       btnBg.lineStyle(2, 0xffff00, 1)
-      btnBg.strokeRoundedRect(580, y - 20, 120, 50, 8)
+      btnBg.strokeRoundedRect(680, y - 22, 70, 44, 6)
 
-      const btn = this.add.text(640, y + 5, '▶ EMPEZAR', {
-        font: 'bold 14px Arial',
+      const btn = this.add.text(715, y, 'JUGAR', {
+        font: 'bold 12px Arial',
         color: '#ffff00'
       }).setOrigin(0.5).setInteractive({ useHandCursor: true })
 
       btn.on('pointerover', () => {
         btn.setColor('#ffffff')
-        btn.setScale(1.1)
+        btn.setScale(1.05)
         btnBg.clear()
         btnBg.fillStyle(0xcc0000, 1)
-        btnBg.fillRoundedRect(580, y - 20, 120, 50, 8)
+        btnBg.fillRoundedRect(680, y - 22, 70, 44, 6)
         btnBg.lineStyle(3, 0xffff00, 1)
-        btnBg.strokeRoundedRect(580, y - 20, 120, 50, 8)
+        btnBg.strokeRoundedRect(680, y - 22, 70, 44, 6)
       })
 
       btn.on('pointerout', () => {
@@ -112,9 +114,9 @@ export default class MainMenuScene extends Phaser.Scene {
         btn.setScale(1)
         btnBg.clear()
         btnBg.fillStyle(0xff0000, 1)
-        btnBg.fillRoundedRect(580, y - 20, 120, 50, 8)
+        btnBg.fillRoundedRect(680, y - 22, 70, 44, 6)
         btnBg.lineStyle(2, 0xffff00, 1)
-        btnBg.strokeRoundedRect(580, y - 20, 120, 50, 8)
+        btnBg.strokeRoundedRect(680, y - 22, 70, 44, 6)
       })
 
       btn.on('pointerdown', () => this.selectRegion(region.id))
@@ -122,7 +124,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     // Footer decorativo
     this.add.text(400, 570, '🔴 ⚫ 🔵 Aventura te espera 🔵 ⚫ 🔴', {
-      font: 'bold 12px Arial',
+      font: 'bold 11px Arial',
       color: '#666666'
     }).setOrigin(0.5)
   }

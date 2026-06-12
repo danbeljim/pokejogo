@@ -8,12 +8,13 @@ export default class MainMenuScene extends Phaser.Scene {
     super('MainMenuScene')
   }
 
+  preload() {
+    this.load.image('pokedex_bg', '/assets/pokedex.jpg')
+  }
+
   create() {
-    // Fondo gris claro
-    const bg = this.add.graphics()
-    bg.fillStyle(0xd0d0d0, 1)
-    bg.fillRect(0, 0, 800, 600)
-    bg.destroy()
+    // Fondo imagen Pokédex
+    this.add.image(400, 300, 'pokedex_bg').setOrigin(0.5, 0.5)
 
     // Panel superior con logo
     const topBar = this.add.graphics()

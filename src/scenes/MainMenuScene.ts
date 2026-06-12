@@ -16,74 +16,40 @@ export default class MainMenuScene extends Phaser.Scene {
     // Fondo imagen Pokédex
     this.add.image(400, 300, 'pokedex_bg').setOrigin(0.5, 0.5)
 
-    // Panel superior con logo
-    const topBar = this.add.graphics()
-    topBar.fillStyle(0xf8a830, 1)
-    topBar.fillRect(0, 0, 800, 35)
-    topBar.lineStyle(2, 0x000000, 1)
-    topBar.strokeRect(0, 0, 800, 35)
+    // Superponer región seleccionada en el área de lista izquierda
+    // (donde están los Pokémon en la imagen)
+    const listStartY = 60
+    const itemHeight = 45
 
-    // Logo
-    this.add.text(15, 8, '🔵 REGIONES', {
-      font: 'bold 16px Arial',
-      color: '#000000'
-    })
-
-    // Panel principal izquierda (lista)
-    const leftPanel = this.add.graphics()
-    leftPanel.fillStyle(0xf0e8d8, 1)
-    leftPanel.fillRect(10, 45, 340, 450)
-    leftPanel.lineStyle(2, 0x000000, 1)
-    leftPanel.strokeRect(10, 45, 340, 450)
-
-    // Encabezado lista
-    const headerBg = this.add.graphics()
-    headerBg.fillStyle(0xd0c8b8, 1)
-    headerBg.fillRect(10, 45, 340, 25)
-    headerBg.lineStyle(1, 0x000000, 1)
-    headerBg.lineBetween(10, 70, 350, 70)
-
-    this.add.text(20, 52, 'Región', {
-      font: 'bold 10px Arial',
-      color: '#000000'
-    })
-
-    // Lista regiones
     REGIONS.forEach((region, i) => {
-      const y = 80 + i * 45
+      const y = listStartY + i * itemHeight
       const isSelected = i === this.selectedIdx
 
-      // Fondo selección
+      // Fondo semi-transparente para selección
       if (isSelected) {
         const selBg = this.add.graphics()
-        selBg.fillStyle(0x4878d8, 1)
-        selBg.fillRect(12, y - 3, 336, 40)
+        selBg.fillStyle(0x000000, 0.3)
+        selBg.fillRoundedRect(20, y, 160, itemHeight - 5, 3)
       }
 
-      // Nombre región
-      this.add.text(25, y + 5, region.name, {
+      // Nombre región (reemplaza nombre Pokémon)
+      const nameText = this.add.text(30, y + 12, region.name, {
         font: `${isSelected ? 'bold' : ''} 11px Arial`,
-        color: isSelected ? '#ffffff' : '#000000'
+        color: isSelected ? '#ffff00' : '#ffffff',
+        stroke: isSelected ? '#000000' : '#333333',
+        strokeThickness: 2
       })
 
-      // Icono tipo (círculo pequeño)
-      const icon = this.add.graphics()
-      icon.fillStyle(0x4488ff, 1)
-      icon.fillCircle(305, y + 10, 6)
-
-      // Número
-      this.add.text(315, y + 5, `Nv. ${region.id}`, {
+      // Número/ID región
+      this.add.text(150, y + 12, `Nv. ${region.id}`, {
         font: `${isSelected ? 'bold' : ''} 9px Arial`,
-        color: isSelected ? '#ffffff' : '#666666'
-      })
-
-      // Línea separadora
-      const line = this.add.graphics()
-      line.lineStyle(1, isSelected ? 0x3860d8 : 0xcccccc, 1)
-      line.lineBetween(12, y + 40, 346, y + 40)
+        color: isSelected ? '#ffff00' : '#cccccc',
+        stroke: '#000000',
+        strokeThickness: 1
+      }).setOrigin(1, 0)
 
       // Zona interactiva
-      const zone = this.add.zone(12, y - 3, 336, 40)
+      const zone = this.add.zone(20, y, 160, itemHeight)
         .setOrigin(0, 0)
         .setInteractive({ useHandCursor: true })
 
@@ -93,54 +59,33 @@ export default class MainMenuScene extends Phaser.Scene {
       })
     })
 
-    // Panel derecho (información)
-    const rightPanel = this.add.graphics()
-    rightPanel.fillStyle(0xf0f8f8, 1)
-    rightPanel.fillRect(360, 45, 430, 450)
-    rightPanel.lineStyle(2, 0x000000, 1)
-    rightPanel.strokeRect(360, 45, 430, 450)
+    // Mostrar información región en el área derecha (donde está Pokémon)
+    const selectedRegion = REGIONS[this.selectedIdx]
 
-    // Área ilustración (azul claro)
-    const illuArea = this.add.graphics()
-    illuArea.fillStyle(0xd8e8f8, 1)
-    illuArea.fillRect(375, 65, 400, 180)
-    illuArea.lineStyle(1, 0xcccccc, 1)
-    illuArea.strokeRect(375, 65, 400, 180)
-
-    // Ilustración simulada (círculos)
-    const ill1 = this.add.graphics()
-    ill1.fillStyle(0x88cc88, 1)
-    ill1.fillCircle(520, 130, 45)
-    ill1.fillStyle(0x88bb88, 1)
-    ill1.fillCircle(535, 150, 30)
-
-    // Nombre región grande
-    this.add.text(575, 265, REGIONS[this.selectedIdx].name, {
-      font: 'bold 18px Arial',
-      color: '#000000'
+    // Nombre grande
+    this.add.text(510, 120, selectedRegion.name, {
+      font: 'bold 20px Arial',
+      color: '#000000',
+      stroke: '#ffffff',
+      strokeThickness: 3
     }).setOrigin(0.5)
 
     // Descripción
-    this.add.text(380, 295, REGIONS[this.selectedIdx].description, {
-      font: 'bold 10px Arial',
+    this.add.text(510, 160, selectedRegion.description, {
+      font: 'bold 11px Arial',
       color: '#333333',
-      wordWrap: { width: 400 },
+      stroke: '#ffffff',
+      strokeThickness: 1,
+      wordWrap: { width: 200 },
       align: 'center'
-    })
+    }).setOrigin(0.5)
 
-    // Botones inferiores
-    const btnArea = this.add.graphics()
-    btnArea.fillStyle(0xf0f8f8, 1)
-    btnArea.fillRect(360, 500, 430, 95)
-    btnArea.lineStyle(2, 0x000000, 1)
-    btnArea.strokeRect(360, 500, 430, 95)
-
-    // Botón Confirmar
-    const confirmBtn = this.add.text(575, 525, '✓ Confirmar', {
-      font: 'bold 12px Arial',
+    // Botón confirmar
+    const confirmBtn = this.add.text(510, 240, '▶ EMPEZAR', {
+      font: 'bold 13px Arial',
       color: '#ffffff',
-      backgroundColor: '#ff6b00',
-      padding: { x: 20, y: 8 }
+      backgroundColor: '#ff0000',
+      padding: { x: 25, y: 10 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })
 
     confirmBtn.on('pointerdown', () => {
@@ -148,17 +93,11 @@ export default class MainMenuScene extends Phaser.Scene {
     })
 
     confirmBtn.on('pointerover', () => {
-      confirmBtn.setScale(1.08)
+      confirmBtn.setScale(1.1)
     })
 
     confirmBtn.on('pointerout', () => {
       confirmBtn.setScale(1)
-    })
-
-    // Instrucciones
-    this.add.text(375, 560, 'A: Confirmar  ↑↓: Seleccionar', {
-      font: '9px Arial',
-      color: '#666666'
     })
 
     // Teclado

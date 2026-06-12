@@ -10,8 +10,8 @@ import CaptureScene from './scenes/CaptureScene'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: 1600,
+  height: 1000,
   backgroundColor: '#000000',
   render: {
     pixelArt: true,

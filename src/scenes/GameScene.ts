@@ -96,9 +96,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private drawMenuButtons() {
-    const bagBtn = this.add.text(105, 555, '🎒 Mochila', {
-      font: 'bold 13px Arial', color: '#FFD700',
-      backgroundColor: '#222', padding: { x: 10, y: 6 }
+    const btnX = 140
+    const btnY = this.scale.height - 90
+
+    const bagBtn = this.add.text(btnX, btnY, '🎒 Mochila', {
+      font: 'bold 18px Arial', color: '#FFD700',
+      backgroundColor: '#222', padding: { x: 18, y: 10 }
     }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true })
     bagBtn.on('pointerdown', () => {
       if (this.eventOccurred) return
@@ -110,9 +113,9 @@ export default class GameScene extends Phaser.Scene {
       })
     })
 
-    const orderBtn = this.add.text(105, 585, '⇅ Orden', {
-      font: 'bold 13px Arial', color: '#FFD700',
-      backgroundColor: '#222', padding: { x: 10, y: 6 }
+    const orderBtn = this.add.text(btnX, btnY + 55, '⇅ Orden', {
+      font: 'bold 18px Arial', color: '#FFD700',
+      backgroundColor: '#222', padding: { x: 18, y: 10 }
     }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true })
     orderBtn.on('pointerdown', () => {
       if (this.eventOccurred) return
@@ -181,8 +184,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private drawThemedBackground(currentMap: any) {
-    const w = 800
-    const h = 600
+    const w = this.scale.width
+    const h = this.scale.height
 
     // Gradient overlay using accent color
     const accent = parseInt(currentMap.accentColor.replace('#', '0x'))
@@ -204,11 +207,11 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // Title overlay
-    this.add.text(400, 30, currentMap.themeName, {
-      font: 'italic bold 16px Arial',
+    this.add.text(w / 2, 60, currentMap.themeName, {
+      font: 'italic bold 32px Arial',
       color: currentMap.accentColor,
       stroke: '#000',
-      strokeThickness: 4
+      strokeThickness: 6
     }).setOrigin(0.5).setDepth(0).setAlpha(0.7)
   }
 
@@ -220,8 +223,9 @@ export default class GameScene extends Phaser.Scene {
       { icon: 'I', label: 'Item', color: '#2196F3' },
       { icon: 'B', label: 'Boss', color: '#FFD700' }
     ]
+    const legendX = this.scale.width - 120
     items.forEach((item, i) => {
-      this.add.text(620, 10 + i * 20, `${item.icon} = ${item.label}`, {
+      this.add.text(legendX, 10 + i * 20, `${item.icon} = ${item.label}`, {
         font: '12px Arial',
         color: item.color,
         backgroundColor: '#000000',
@@ -234,14 +238,14 @@ export default class GameScene extends Phaser.Scene {
     if (this.hudText) this.hudText.destroy()
     const currentMap = this.mapManager.getCurrentMap()
 
-    this.hudText = this.add.text(10, 10,
+    this.hudText = this.add.text(20, 20,
       `Mapa ${currentMap.id}: ${currentMap.name}\n` +
       `Líder de Gimnasio: ${currentMap.gymLeaderName}\n` +
       `Medallas: ${this.mapManager.getMedalCount()}/8`, {
-      font: '12px Arial',
+      font: '20px Arial',
       color: '#ffffff',
       backgroundColor: '#000000',
-      padding: { x: 6, y: 4 }
+      padding: { x: 12, y: 8 }
     }).setScrollFactor(0).setDepth(100)
 
     this.drawTeamPanel()
@@ -250,33 +254,33 @@ export default class GameScene extends Phaser.Scene {
   private drawTeamPanel() {
     if (this.teamPanel) this.teamPanel.destroy()
     const slots = 6
-    const slotH = 62
-    const slotW = 86
-    const x0 = 6
-    const y0 = 90
+    const slotH = 100
+    const slotW = 120
+    const x0 = 12
+    const y0 = 180
     const container = this.add.container(0, 0).setDepth(100).setScrollFactor(0)
 
-    const title = this.add.text(x0, y0 - 16, 'EQUIPO', {
-      font: 'bold 11px Arial',
+    const title = this.add.text(x0 + slotW / 2, y0 - 32, 'EQUIPO', {
+      font: 'bold 17px Arial',
       color: '#ffffff',
       backgroundColor: '#000000',
-      padding: { x: 4, y: 2 }
-    })
+      padding: { x: 6, y: 3 }
+    }).setOrigin(0.5)
     container.add(title)
 
     for (let i = 0; i < slots; i++) {
       const y = y0 + i * slotH
       const bg = this.add.graphics()
       bg.fillStyle(0x000000, 0.75)
-      bg.fillRoundedRect(x0, y, slotW, slotH - 4, 6)
+      bg.fillRoundedRect(x0, y, slotW, slotH - 8, 12)
       bg.lineStyle(1, 0x444444, 1)
-      bg.strokeRoundedRect(x0, y, slotW, slotH - 4, 6)
+      bg.strokeRoundedRect(x0, y, slotW, slotH - 8, 12)
       container.add(bg)
 
       const p = this.playerTeam[i]
       if (!p) {
-        const empty = this.add.text(x0 + slotW / 2, y + (slotH - 4) / 2, '—', {
-          font: '14px Arial', color: '#555555'
+        const empty = this.add.text(x0 + slotW / 2, y + (slotH - 8) / 2, '—', {
+          font: '24px Arial', color: '#555555'
         }).setOrigin(0.5)
         container.add(empty)
         continue
@@ -284,27 +288,27 @@ export default class GameScene extends Phaser.Scene {
 
       const sKey = spriteKey(p.id, false)
       if (this.textures.exists(sKey)) {
-        const img = this.add.image(x0 + 22, y + 28, sKey)
-        img.setScale(0.7)
+        const img = this.add.image(x0 + 30, y + 40, sKey)
+        img.setScale(1)
         container.add(img)
       }
 
-      const info = this.add.text(x0 + 42, y + 6, `${p.name}\nNv.${p.level}\n${p.hp}/${p.maxHp}`, {
-        font: '10px Arial', color: '#ffffff'
+      const info = this.add.text(x0 + 64, y + 8, `${p.name}\nNv.${p.level}`, {
+        font: '11px Arial', color: '#ffffff'
       })
       container.add(info)
 
       // HP bar
       const hpRatio = Math.max(0, p.hp / p.maxHp)
       const hpBar = this.add.graphics()
-      const barX = x0 + 4
-      const barY = y + slotH - 12
-      const barW = slotW - 8
+      const barX = x0 + 5
+      const barY = y + slotH - 15
+      const barW = slotW - 10
       hpBar.fillStyle(0x222222, 1)
-      hpBar.fillRect(barX, barY, barW, 5)
+      hpBar.fillRect(barX, barY, barW, 8)
       const hpColor = hpRatio > 0.5 ? 0x4CAF50 : hpRatio > 0.2 ? 0xFFC107 : 0xF44336
       hpBar.fillStyle(hpColor, 1)
-      hpBar.fillRect(barX, barY, barW * hpRatio, 5)
+      hpBar.fillRect(barX, barY, barW * hpRatio, 8)
       container.add(hpBar)
     }
 

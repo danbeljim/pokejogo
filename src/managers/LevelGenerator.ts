@@ -24,9 +24,9 @@ export interface GameMap {
 export default class LevelGenerator {
   generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5): GameMap {
     const nodes: MapNode[] = []
-    const worldWidth = 800
-    const worldHeight = 540
-    const topMargin = 60
+    const worldWidth = 1600
+    const worldHeight = 1067
+    const topMargin = 200
     const rows = 5
     const rowSpacing = (worldHeight - topMargin) / (rows + 1)
 

@@ -9,105 +9,74 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   create() {
-    // Fondo azul Pokémon
-    const bg = this.add.graphics()
-    bg.fillStyle(0x4878d8, 1)
-    bg.fillRect(0, 0, 800, 600)
-    bg.destroy()
+    // Fondo: rojo izquierda, blanco/gris derecha
+    const bgLeft = this.add.graphics()
+    bgLeft.fillStyle(0xff1a2e, 1)
+    bgLeft.fillRect(0, 0, 400, 600)
 
-    // Borde superior con nombre del jugador
-    const topBorder = this.add.graphics()
-    topBorder.fillStyle(0xe8d0b0, 1)
-    topBorder.fillRect(0, 0, 800, 40)
-    topBorder.lineStyle(2, 0x000000, 1)
-    topBorder.strokeRect(0, 0, 800, 40)
+    const bgRight = this.add.graphics()
+    bgRight.fillStyle(0xe8f0f8, 1)
+    bgRight.fillRect(400, 0, 400, 600)
 
-    // Nombre jugador
-    this.add.text(15, 10, 'ADVENTURER', {
-      font: 'bold 12px Arial',
-      color: '#000000'
+    // Diagonal decorativa
+    const diag = this.add.graphics()
+    diag.fillStyle(0xff1a2e, 0.3)
+    diag.beginPath()
+    diag.moveTo(350, 0)
+    diag.lineTo(450, 0)
+    diag.lineTo(400, 600)
+    diag.lineTo(300, 600)
+    diag.closePath()
+    diag.fillPath()
+
+    // Logo/Título
+    this.add.text(30, 20, '🎮 REGIONES', {
+      font: 'bold 24px Arial',
+      color: '#ffffff'
     })
 
-    // Panel izquierdo con icono
-    const leftPanel = this.add.graphics()
-    leftPanel.fillStyle(0xe8d0b0, 1)
-    leftPanel.fillRect(10, 50, 220, 420)
-    leftPanel.lineStyle(2, 0x000000, 1)
-    leftPanel.strokeRect(10, 50, 220, 420)
-    leftPanel.lineStyle(1, 0xffffff, 1)
-    leftPanel.strokeRect(12, 52, 216, 416)
-
-    // Icono region grande (simulado con círculo + texto)
-    const icon = this.add.graphics()
-    icon.fillStyle(0xd4a860, 1)
-    icon.fillCircle(120, 150, 50)
-    icon.lineStyle(2, 0x000000, 1)
-    icon.strokeCircle(120, 150, 50)
-    icon.fillStyle(0xa87828, 1)
-    icon.fillRect(100, 130, 40, 40)
-
-    this.add.text(120, 280, 'REGIÓN', {
-      font: 'bold 10px Arial',
-      color: '#000000'
-    }).setOrigin(0.5)
-
-    this.add.text(120, 420, 'Selecciona', {
-      font: 'bold 8px Arial',
-      color: '#666666'
-    }).setOrigin(0.5)
-
-    // Panel derecho con lista
-    const rightPanel = this.add.graphics()
-    rightPanel.fillStyle(0xf0e8d8, 1)
-    rightPanel.fillRect(240, 50, 550, 420)
-    rightPanel.lineStyle(2, 0x000000, 1)
-    rightPanel.strokeRect(240, 50, 550, 420)
-    rightPanel.lineStyle(1, 0xffffff, 1)
-    rightPanel.strokeRect(242, 52, 546, 416)
-
-    // Encabezado lista
-    const headerBg = this.add.graphics()
-    headerBg.fillStyle(0xd0c8b8, 1)
-    headerBg.fillRect(242, 52, 546, 25)
-    headerBg.lineStyle(1, 0x000000, 1)
-    headerBg.lineBetween(242, 77, 788, 77)
-
-    this.add.text(255, 64, 'Región', {
-      font: 'bold 10px Arial',
-      color: '#000000'
+    // Contador región
+    this.add.text(30, 55, `${this.selectedIdx + 1}/${REGIONS.length}`, {
+      font: 'bold 14px Arial',
+      color: '#ffffff'
     })
 
-    this.add.text(750, 64, 'Cant', {
-      font: 'bold 10px Arial',
-      color: '#000000'
-    }).setOrigin(1, 0.5)
-
-    // Items/Regiones
+    // Lista de regiones (lado izquierdo)
     REGIONS.forEach((region, i) => {
-      const y = 100 + i * 35
+      const y = 100 + i * 70
       const isSelected = i === this.selectedIdx
 
-      // Fondo selección
+      // Caja región
+      const boxBg = this.add.graphics()
       if (isSelected) {
-        const selBg = this.add.graphics()
-        selBg.fillStyle(0x6888d8, 1)
-        selBg.fillRect(242, y - 8, 546, 30)
+        boxBg.fillStyle(0x000000, 1)
+        boxBg.fillRoundedRect(20, y, 360, 60, 8)
+      } else {
+        boxBg.fillStyle(0xffffff, 1)
+        boxBg.fillRoundedRect(20, y, 360, 60, 8)
+        boxBg.lineStyle(2, 0x000000, 1)
+        boxBg.strokeRoundedRect(20, y, 360, 60, 8)
       }
 
       // Nombre
-      this.add.text(255, y + 4, region.name, {
-        font: `${isSelected ? 'bold' : ''} 10px Arial`,
-        color: isSelected ? '#ffffff' : '#000000'
+      this.add.text(35, y + 10, region.name, {
+        font: `bold 14px Arial`,
+        color: isSelected ? '#ffff00' : '#000000'
       })
 
-      // Cantidad
-      this.add.text(750, y + 4, 'x001', {
-        font: `${isSelected ? 'bold' : ''} 10px Arial`,
-        color: isSelected ? '#ffffff' : '#000000'
-      }).setOrigin(1, 0)
+      // Badge/círculo color (simulado)
+      const badge = this.add.graphics()
+      badge.fillStyle(0x4488ff, 1)
+      badge.fillCircle(350, y + 30, 8)
+
+      // Número
+      this.add.text(35, y + 35, `Nv. ${region.id}`, {
+        font: 'bold 11px Arial',
+        color: isSelected ? '#ffffff' : '#666666'
+      })
 
       // Zona interactiva
-      const zone = this.add.zone(242, y - 8, 546, 30)
+      const zone = this.add.zone(20, y, 360, 60)
         .setOrigin(0, 0)
         .setInteractive({ useHandCursor: true })
 
@@ -117,34 +86,68 @@ export default class MainMenuScene extends Phaser.Scene {
       })
     })
 
-    // Panel inferior con descripción
-    const bottomPanel = this.add.graphics()
-    bottomPanel.fillStyle(0x4878d8, 1)
-    bottomPanel.fillRect(0, 470, 800, 130)
-    bottomPanel.lineStyle(2, 0x000000, 1)
-    bottomPanel.strokeRect(0, 470, 800, 130)
+    // Panel derecho: información región
+    const infoBg = this.add.graphics()
+    infoBg.fillStyle(0xffffff, 1)
+    infoBg.fillRoundedRect(420, 80, 360, 240, 10)
+    infoBg.lineStyle(3, 0x000000, 1)
+    infoBg.strokeRoundedRect(420, 80, 360, 240, 10)
 
-    this.add.text(20, 485, REGIONS[this.selectedIdx].name + ' - Región', {
-      font: 'bold 11px Arial',
-      color: '#ffff00'
+    // Ilustración (simulada con degradado)
+    const illBg = this.add.graphics()
+    illBg.fillStyle(0xb8d8e8, 1)
+    illBg.fillCircle(600, 150, 60)
+    illBg.fillStyle(0x88c8e8, 1)
+    illBg.fillCircle(620, 170, 40)
+
+    // Nombre región grande
+    this.add.text(600, 230, REGIONS[this.selectedIdx].name, {
+      font: 'bold 18px Arial',
+      color: '#000000'
+    }).setOrigin(0.5)
+
+    // Descripción
+    this.add.text(440, 260, REGIONS[this.selectedIdx].description, {
+      font: '11px Arial',
+      color: '#333333',
+      wordWrap: { width: 320 }
     })
 
-    this.add.text(20, 510, REGIONS[this.selectedIdx].description, {
-      font: '10px Arial',
+    // Panel inferior: botones
+    const btnBg = this.add.graphics()
+    btnBg.fillStyle(0xffffff, 1)
+    btnBg.fillRect(420, 340, 360, 240)
+    btnBg.lineStyle(3, 0x000000, 1)
+    btnBg.strokeRect(420, 340, 360, 240)
+
+    // Botón Confirmar
+    const confirmBtn = this.add.text(600, 380, '✓ Confirmar', {
+      font: 'bold 14px Arial',
       color: '#ffffff',
-      wordWrap: { width: 750 }
-    })
+      backgroundColor: '#ff1a2e',
+      padding: { x: 30, y: 12 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true })
 
-    this.add.text(20, 560, 'Presiona ENTER o haz clic para seleccionar', {
-      font: 'bold 9px Arial',
-      color: '#88ff88'
-    })
-
-    // Teclado
-    this.input.keyboard?.on('keydown-ENTER', () => {
+    confirmBtn.on('pointerdown', () => {
       this.selectRegion(REGIONS[this.selectedIdx].id)
     })
 
+    confirmBtn.on('pointerover', () => {
+      confirmBtn.setScale(1.1)
+    })
+
+    confirmBtn.on('pointerout', () => {
+      confirmBtn.setScale(1)
+    })
+
+    // Info botones
+    this.add.text(600, 470, '↑ ↓ Navegar / ENTER Confirmar', {
+      font: 'bold 10px Arial',
+      color: '#666666',
+      align: 'center'
+    }).setOrigin(0.5)
+
+    // Teclado
     this.input.keyboard?.on('keydown-UP', () => {
       if (this.selectedIdx > 0) {
         this.selectedIdx--
@@ -157,6 +160,10 @@ export default class MainMenuScene extends Phaser.Scene {
         this.selectedIdx++
         this.scene.restart()
       }
+    })
+
+    this.input.keyboard?.on('keydown-ENTER', () => {
+      this.selectRegion(REGIONS[this.selectedIdx].id)
     })
   }
 

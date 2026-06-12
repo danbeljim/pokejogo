@@ -52,7 +52,13 @@ export default class PlatformManager {
     // Draw lines first (behind nodes)
     this.linesGraphics = this.scene.add.graphics()
     this.linesGraphics.setDepth(1)
-    // Connection lines disabled
+
+    this.map.nodes.forEach(node => {
+      node.connections.forEach(targetId => {
+        const target = this.map!.nodes[targetId]
+        this.drawDashedLine(node.x, node.y, target.x, target.y, 0x888888, 0.6)
+      })
+    })
 
     // Draw nodes
     this.map.nodes.forEach(node => this.drawNode(node))
@@ -194,6 +200,28 @@ export default class PlatformManager {
       return img
     }
     return undefined
+  }
+
+  private drawDashedLine(x1: number, y1: number, x2: number, y2: number, color: number, alpha: number) {
+    if (!this.linesGraphics) return
+    const dashLen = 10
+    const gapLen = 5
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const dist = Math.sqrt(dx * dx + dy * dy)
+
+    this.linesGraphics.lineStyle(2, color, alpha)
+    let traveled = 0
+    while (traveled < dist) {
+      const segEnd = Math.min(traveled + dashLen, dist)
+      const t1 = traveled / dist
+      const t2 = segEnd / dist
+      this.linesGraphics.beginPath()
+      this.linesGraphics.moveTo(x1 + dx * t1, y1 + dy * t1)
+      this.linesGraphics.lineTo(x1 + dx * t2, y1 + dy * t2)
+      this.linesGraphics.strokePath()
+      traveled += dashLen + gapLen
+    }
   }
 
   private isClickable(node: MapNode): boolean {

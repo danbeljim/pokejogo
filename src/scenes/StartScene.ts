@@ -2,9 +2,18 @@ import Phaser from 'phaser'
 import { getStarters, spriteKey, spriteUrl } from '../entities/PokemonFactory'
 import { TYPE_COLORS } from '../data/Types'
 
+export interface StartSceneData {
+  regionId: number
+}
+
 export default class StartScene extends Phaser.Scene {
   constructor() {
     super('StartScene')
+  }
+
+  init(data: StartSceneData) {
+    // regionId available for future use
+    console.log('Starting game for region:', data.regionId)
   }
 
   preload() {

@@ -127,8 +127,11 @@ export default class BagScene extends Phaser.Scene {
 
   private equip(p: Pokemon) {
     if (!this.selectedItem || this.selectedIdx === undefined) return
-    equipItem(p, this.selectedItem)
+    const oldItem = equipItem(p, this.selectedItem)
     this.payload.playerBag.splice(this.selectedIdx, 1)
+    if (oldItem) {
+      this.payload.playerBag.push(oldItem)
+    }
     this.selectedItem = undefined
     this.selectedIdx = undefined
     this.render()

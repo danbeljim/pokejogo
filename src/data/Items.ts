@@ -30,7 +30,30 @@ export function getRandomItems(count: number): Item[] {
   return shuffled.slice(0, count)
 }
 
-export function equipItem(pokemon: Pokemon, item: Item) {
+function unequipItem(pokemon: Pokemon) {
+  if (!pokemon.heldItem) return null
+
+  const heldItemName = pokemon.heldItem
+  const item = ITEMS.find(i => i.name === heldItemName)
+  if (!item) return null
+
+  pokemon.attack -= item.bonus.attack || 0
+  pokemon.defense -= item.bonus.defense || 0
+  pokemon.speed -= item.bonus.speed || 0
+  if (item.bonus.hp) {
+    pokemon.maxHp -= item.bonus.hp
+    pokemon.hp = Math.min(pokemon.hp - item.bonus.hp, pokemon.maxHp)
+    if (pokemon.maxHp < 1) pokemon.maxHp = 1
+    if (pokemon.hp < 1) pokemon.hp = 1
+  }
+  pokemon.heldItem = undefined
+
+  return item
+}
+
+export function equipItem(pokemon: Pokemon, item: Item): Item | null {
+  const oldItem = unequipItem(pokemon)
+
   pokemon.attack += item.bonus.attack || 0
   pokemon.defense += item.bonus.defense || 0
   pokemon.speed += item.bonus.speed || 0
@@ -41,4 +64,6 @@ export function equipItem(pokemon: Pokemon, item: Item) {
     if (pokemon.hp < 1) pokemon.hp = 1
   }
   ;(pokemon as any).heldItem = item.name
+
+  return oldItem
 }

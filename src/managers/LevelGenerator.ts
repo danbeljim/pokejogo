@@ -26,7 +26,7 @@ export default class LevelGenerator {
     const nodes: MapNode[] = []
     const worldWidth = 1600
     const worldHeight = 1067
-    const topMargin = 200
+    const topMargin = 160
     const rows = 5
     const rowSpacing = (worldHeight - topMargin) / (rows + 1)
 

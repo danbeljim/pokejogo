@@ -7,6 +7,7 @@ import ItemPickerScene from './scenes/ItemPickerScene'
 import BagScene from './scenes/BagScene'
 import TeamOrderScene from './scenes/TeamOrderScene'
 import CaptureScene from './scenes/CaptureScene'
+import RandomPickerScene from './scenes/RandomPickerScene'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -26,7 +27,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [MainMenuScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene]
+  scene: [MainMenuScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene]
 }
 
 new Phaser.Game(config)

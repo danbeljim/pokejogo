@@ -53,7 +53,7 @@ export default class EventPopup {
       const key = spriteKey(dexId, false)
       if (this.scene.textures.exists(key)) {
         const sprite = this.scene.add.image(400, 350, key)
-        sprite.setScale(3)
+        sprite.setDisplaySize(120, 120)
         items.push(sprite)
       }
     }

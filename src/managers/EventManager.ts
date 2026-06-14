@@ -1,7 +1,8 @@
 import { PlatformEventType } from '../types'
 import { MapNode } from './LevelGenerator'
 import { Pokemon } from '../entities/Pokemon'
-import { createWildPokemon, createTrainerTeam, createGymLeaderTeam } from '../entities/PokemonFactory'
+import { createWildPokemon, createGymLeaderTeam } from '../entities/PokemonFactory'
+import { assignRogueTraits } from '../data/RoguelikeData'
 
 export interface EventResult {
   type: PlatformEventType
@@ -14,35 +15,55 @@ export interface EventResult {
   requiresItemPicker?: boolean
   requiresCapturePicker?: boolean
   captureOptions?: Pokemon[]
+  requiresRandomPicker?: boolean
 }
 
 export default class EventManager {
-  handleEvent(platform: MapNode, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string): EventResult {
+  roguelikeMode: boolean = false
+  trainerClass: string | null = null
+
+  handleEvent(platform: MapNode, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string, bossMaxLevel: number = 14, wildMin: number = 3, wildMax: number = 6, ghostOnly: boolean = false): EventResult {
+    const trainerMax = Math.max(3, Math.floor(bossMaxLevel * 0.70))
     switch (platform.eventType) {
       case PlatformEventType.POKEMON_CAPTURE:
-        return this.handleCapture(platform, playerTeam, difficulty)
+        return this.handleCapture(platform, playerTeam, wildMin, wildMax, ghostOnly)
       case PlatformEventType.WILD_POKEMON:
-        return this.prepareWildBattle(platform, difficulty)
+        return this.prepareWildBattle(platform, wildMin, wildMax)
       case PlatformEventType.TRAINER_BATTLE:
-        return this.prepareTrainerBattle(platform, difficulty)
+        return this.prepareTrainerBattle(platform, difficulty, trainerMax)
       case PlatformEventType.ITEM_PICKUP:
         return this.handleItemPickup(platform)
       case PlatformEventType.BOSS:
         return this.prepareBossBattle(difficulty, gymName || 'Boss', playerTeam)
+      case PlatformEventType.POKEMON_CENTER:
+        return this.handlePokemonCenter(playerTeam)
+      case PlatformEventType.RANDOM:
+        return { type: PlatformEventType.RANDOM, message: '¡Un evento especial!', requiresRandomPicker: true }
+      case PlatformEventType.MEMORIAL:
+        return this.handleMemorial(platform, playerTeam)
+      case PlatformEventType.NARRATIVE:
+        return this.handleNarrative()
       default:
         return { type: PlatformEventType.POKEMON_CAPTURE, message: 'Unknown' }
     }
   }
 
-  private handleCapture(_platform: MapNode, playerTeam: Pokemon[], difficulty: number): EventResult {
-    const level = Math.max(3, difficulty * 3 + Math.floor(Math.random() * 4))
+  private handleCapture(_platform: MapNode, playerTeam: Pokemon[], wildMin: number, wildMax: number, ghostOnly: boolean = false): EventResult {
+    const level = wildMin + Math.floor(Math.random() * (wildMax - wildMin + 1))
     const opts: Pokemon[] = []
     const seen = new Set<number>()
+    const GHOST_IDS = [92, 92, 93]
     let tries = 0
     while (opts.length < 3 && tries < 20) {
-      const p = createWildPokemon(level)
-      if (!seen.has(p.id)) {
+      const p = ghostOnly
+        ? createWildPokemon(level, GHOST_IDS[opts.length])
+        : createWildPokemon(level)
+      if (!seen.has(p.id) || ghostOnly) {
         seen.add(p.id)
+        if (this.roguelikeMode) {
+          const guaranteePositive = this.trainerClass === 'criador'
+          assignRogueTraits(p, guaranteePositive)
+        }
         opts.push(p)
       }
       tries++
@@ -57,9 +78,10 @@ export default class EventManager {
     }
   }
 
-  private prepareWildBattle(platform: MapNode, difficulty: number): EventResult {
-    const level = platform.eventData?.level || (2 + difficulty * 2)
-    const wild = createWildPokemon(level, platform.eventData?.pokemonId)
+  private prepareWildBattle(platform: MapNode, wildMin: number, wildMax: number): EventResult {
+    const level = platform.eventData?.level || (wildMin + Math.floor(Math.random() * (wildMax - wildMin + 1)))
+    const wild = createWildPokemon(level, platform.eventData?.pokemonId, true)
+    if (this.roguelikeMode) assignRogueTraits(wild, false)
     return {
       type: PlatformEventType.WILD_POKEMON,
       message: `¡Apareció ${wild.name} salvaje!`,
@@ -69,8 +91,14 @@ export default class EventManager {
     }
   }
 
-  private prepareTrainerBattle(platform: MapNode, difficulty: number): EventResult {
-    const team: Pokemon[] = platform.eventData?.team || createTrainerTeam(difficulty)
+  private prepareTrainerBattle(platform: MapNode, difficulty: number, trainerMax: number): EventResult {
+    const teamSize = Math.min(1 + Math.floor(difficulty / 2), 3)
+    const team: Pokemon[] = platform.eventData?.team || Array.from({ length: teamSize }, (_, i) => {
+      const lvl = Math.max(2, Math.floor(trainerMax * (0.8 - i * 0.1)))
+      const p = createWildPokemon(lvl, undefined, true)
+      if (this.roguelikeMode) assignRogueTraits(p, false)
+      return p
+    })
     return {
       type: PlatformEventType.TRAINER_BATTLE,
       message: `¡Un Entrenador te reta!`,
@@ -80,9 +108,8 @@ export default class EventManager {
     }
   }
 
-  private prepareBossBattle(difficulty: number, gymName: string, playerTeam: Pokemon[]): EventResult {
-    const playerMax = Math.max(...playerTeam.map(p => p.level), 5)
-    const team = createGymLeaderTeam(difficulty, playerMax - 1)
+  private prepareBossBattle(_difficulty: number, gymName: string, _playerTeam: Pokemon[]): EventResult {
+    const team = createGymLeaderTeam(gymName)
     return {
       type: PlatformEventType.BOSS,
       message: `¡Aparece el Líder de Gimnasio ${gymName}!`,
@@ -100,8 +127,40 @@ export default class EventManager {
     }
   }
 
+  private handlePokemonCenter(playerTeam: Pokemon[]): EventResult {
+    playerTeam.forEach(p => p.heal(p.maxHp))
+    return {
+      type: PlatformEventType.POKEMON_CENTER,
+      message: '¡Bienvenido al Centro Pokémon! Tu equipo ha sido restaurado completamente.'
+    }
+  }
+
+  private handleMemorial(platform: MapNode, playerTeam: Pokemon[]): EventResult {
+    const pct = platform.eventData?.healPercent ?? 0.4
+    playerTeam.forEach(p => p.heal(Math.floor(p.maxHp * pct)))
+    return {
+      type: PlatformEventType.MEMORIAL,
+      message: '🙏 Sala Memorial. Una paz extraña recorre la torre... El equipo recupera el 40% de PS.'
+    }
+  }
+
+  private handleNarrative(): EventResult {
+    const EVENTS = [
+      '📜 Un médium te habla: "Los espíritus aquí llevan décadas sin descanso..."',
+      '📜 Encuentras una lápida. Pone: "Pokémon caído en batalla. Nunca olvidado."',
+      '📜 Una voz susurra tu nombre. No hay nadie. Sientes un escalofrío.',
+      '📜 Un niño Rocket abandonó aquí su bichapod. Yace inmóvil en el suelo.',
+      '📜 Las paredes vibran levemente. Desde arriba llega un gemido distante.',
+    ]
+    const msg = EVENTS[Math.floor(Math.random() * EVENTS.length)]
+    return { type: PlatformEventType.NARRATIVE, message: msg }
+  }
+
   applyBattleReward(playerTeam: Pokemon[], battleType: 'wild' | 'trainer' | 'boss'): string {
-    const levelGain = battleType === 'wild' ? 1 : battleType === 'trainer' ? 2 : 3
+    const baseGain = battleType === 'wild' ? 1 : battleType === 'trainer' ? 2 : 3
+    const levelGain = (this.roguelikeMode && this.trainerClass === 'luchador')
+      ? Math.ceil(baseGain * 1.5)
+      : baseGain
     const notes: string[] = []
     playerTeam.forEach(p => {
       if (!p.isAlive()) return

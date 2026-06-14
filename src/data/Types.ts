@@ -33,9 +33,16 @@ export function getEffectiveness(attackerType: PokemonType, defenderType: Pokemo
   return EFFECTIVENESS[attackerType]?.[defenderType] ?? 1
 }
 
+export const TYPE_NAMES_ES: Record<PokemonType, string> = {
+  normal: 'Normal', fire: 'Fuego', water: 'Agua', grass: 'Planta',
+  electric: 'Eléctrico', psychic: 'Psíquico', ground: 'Tierra', rock: 'Roca',
+  flying: 'Volador', poison: 'Veneno', bug: 'Bicho', ghost: 'Fantasma',
+  ice: 'Hielo', dragon: 'Dragón', fighting: 'Lucha'
+}
+
 export function getEffectivenessLabel(mult: number): string {
-  if (mult === 0) return "It had no effect..."
-  if (mult >= 2) return "Super effective!"
-  if (mult <= 0.5) return "Not very effective..."
+  if (mult === 0) return "¡No tuvo efecto..."
+  if (mult >= 2) return "¡Es muy eficaz!"
+  if (mult <= 0.5) return "No es muy eficaz..."
   return ''
 }

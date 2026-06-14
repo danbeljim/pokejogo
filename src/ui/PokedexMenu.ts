@@ -5,9 +5,11 @@ export class PokedexMenu {
   private container: HTMLElement
   private selectedIdx: number = 0
   private onSelect: (regionId: number) => void
+  private onRoguelike?: () => void
 
-  constructor(onSelect: (regionId: number) => void) {
+  constructor(onSelect: (regionId: number) => void, onRoguelike?: () => void) {
     this.onSelect = onSelect
+    this.onRoguelike = onRoguelike
     this.container = document.createElement('div')
     this.container.className = 'pokedex-container'
     this.render()
@@ -60,6 +62,13 @@ export class PokedexMenu {
 
       slotsContainer.appendChild(slot)
     }
+
+    // Roguelike mode slot (WIP - disabled)
+    const rlSlot = document.createElement('div')
+    rlSlot.className = 'pokedex-slot roguelike-slot roguelike-disabled'
+    rlSlot.innerHTML = `<span class="pokedex-slot-text">◆ PURO ROGUELIKE<br><small>próximamente</small></span>`
+    rlSlot.style.cursor = 'not-allowed'
+    slotsContainer.appendChild(rlSlot)
   }
 
   private selectSlot(idx: number, regionId: number) {

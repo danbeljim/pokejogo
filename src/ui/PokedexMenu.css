@@ -25,9 +25,9 @@ body {
 .pokedex {
   position: relative;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1800px;
   height: 100%;
-  max-height: 750px;
+  max-height: 950px;
   background: linear-gradient(180deg, #5DADE2 0%, #5DADE2 45%, #4A90E2 45%, #4A90E2 55%, #4CAF50 55%, #4CAF50 100%);
   border-radius: 0px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
@@ -197,6 +197,39 @@ body {
   color: #FF9500;
   line-height: 1.6;
   font-weight: 400;
+}
+
+/* Roguelike slot */
+.pokedex-slot.roguelike-slot {
+  background: #1a0a0a;
+  color: #ff4444;
+  border-color: #880000;
+  box-shadow: inset 0 4px 0px rgba(255, 0, 0, 0.15), inset 0 -4px 0px rgba(0, 0, 0, 0.5);
+}
+
+.pokedex-slot.roguelike-slot::before {
+  background: linear-gradient(90deg, #880000 0%, #880000 65%, transparent 100%);
+}
+
+.pokedex-slot.roguelike-slot:hover {
+  background: #2a0a0a;
+  transform: translateY(-2px);
+}
+
+.pokedex-slot.roguelike-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.pokedex-slot.roguelike-disabled small {
+  font-size: 0.65em;
+  color: #884444;
+  letter-spacing: 1px;
+}
+
+.pokedex-slot.roguelike-slot.active {
+  background: #3a0a0a;
+  border-color: #ff4444;
 }
 
 /* Banda negra pie */

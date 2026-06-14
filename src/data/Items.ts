@@ -1,69 +1,131 @@
 import { Pokemon } from '../entities/Pokemon'
 
+export type ItemCategory = 'vitamin' | 'relic'
+export type RelicEffect = 'leftovers' | 'life_orb' | 'focus_sash' | 'choice_band'
+
 export interface Item {
   id: string
   name: string
   description: string
-  bonus: {
-    hp?: number
-    attack?: number
-    defense?: number
-    speed?: number
-  }
+  category: ItemCategory
+  // Vitamins only
+  vitaminStat?: 'hp' | 'attack' | 'defense' | 'speed'
+  // Relics only
+  relicEffect?: RelicEffect
+  bonus?: { hp?: number; attack?: number; defense?: number; speed?: number }
 }
 
-export const ITEMS: Item[] = [
-  { id: 'muscle-band', name: 'Muscle Band', description: '+5 Attack', bonus: { attack: 5 } },
-  { id: 'metal-coat', name: 'Metal Coat', description: '+5 Defense', bonus: { defense: 5 } },
-  { id: 'quick-claw', name: 'Quick Claw', description: '+5 Speed', bonus: { speed: 5 } },
-  { id: 'life-orb', name: 'Life Orb', description: '+8 Atk, -10 HP', bonus: { attack: 8, hp: -10 } },
-  { id: 'leftovers', name: 'Leftovers', description: '+15 Max HP', bonus: { hp: 15 } },
-  { id: 'expert-belt', name: 'Expert Belt', description: '+3 Atk +3 Def', bonus: { attack: 3, defense: 3 } },
-  { id: 'choice-band', name: 'Choice Band', description: '+10 Attack', bonus: { attack: 10 } },
-  { id: 'choice-scarf', name: 'Choice Scarf', description: '+10 Speed', bonus: { speed: 10 } },
-  { id: 'assault-vest', name: 'Assault Vest', description: '+10 Defense', bonus: { defense: 10 } },
-  { id: 'focus-sash', name: 'Focus Sash', description: '+20 Max HP', bonus: { hp: 20 } }
+export const VITAMINS: Item[] = [
+  { id: 'hp-up',   name: 'HP Up',   description: '+PS máximos permanentes',   category: 'vitamin', vitaminStat: 'hp' },
+  { id: 'protein', name: 'Protein', description: '+Ataque permanente',         category: 'vitamin', vitaminStat: 'attack' },
+  { id: 'iron',    name: 'Iron',    description: '+Defensa permanente',        category: 'vitamin', vitaminStat: 'defense' },
+  { id: 'carbos',  name: 'Carbos',  description: '+Velocidad permanente',      category: 'vitamin', vitaminStat: 'speed' },
+  { id: 'calcium', name: 'Calcium', description: '+Atq Especial (→Ataque)',    category: 'vitamin', vitaminStat: 'attack' },
+  { id: 'zinc',    name: 'Zinc',    description: '+Def Especial (→Defensa)',   category: 'vitamin', vitaminStat: 'defense' },
 ]
+
+export const RELICS: Item[] = [
+  {
+    id: 'leftovers', name: 'Leftovers',
+    description: 'Cura 5% PS cada turno',
+    category: 'relic', relicEffect: 'leftovers',
+    bonus: {}
+  },
+  {
+    id: 'life-orb', name: 'Life Orb',
+    description: '+30% daño, pierdes 10% PS al atacar',
+    category: 'relic', relicEffect: 'life_orb',
+    bonus: {}
+  },
+  {
+    id: 'focus-sash', name: 'Focus Sash',
+    description: 'Sobrevives un golpe mortal a 1 PS',
+    category: 'relic', relicEffect: 'focus_sash',
+    bonus: {}
+  },
+  {
+    id: 'choice-band', name: 'Choice Band',
+    description: '+30% Ataque, repites movimiento',
+    category: 'relic', relicEffect: 'choice_band',
+    bonus: {}
+  },
+]
+
+export const ITEMS: Item[] = [...VITAMINS, ...RELICS]
 
 export function getRandomItems(count: number): Item[] {
   const shuffled = [...ITEMS].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, count)
 }
 
-function unequipItem(pokemon: Pokemon) {
+// Vitaminas: boost 1-3% del stat actual, mínimo 2
+export function applyVitamin(pokemon: Pokemon, item: Item): string {
+  const stat = item.vitaminStat
+  if (!stat) return ''
+  const pct = 1 + Math.random() * 2  // 1–3%
+  if (stat === 'hp') {
+    const gain = Math.max(2, Math.floor(pokemon.maxHp * pct / 100))
+    pokemon.maxHp += gain
+    pokemon.hp = Math.min(pokemon.hp + gain, pokemon.maxHp)
+    return `+${gain} PS máx`
+  }
+  if (stat === 'attack') {
+    const gain = Math.max(2, Math.floor(pokemon.attack * pct / 100))
+    pokemon.attack += gain
+    return `+${gain} Ataque`
+  }
+  if (stat === 'defense') {
+    const gain = Math.max(2, Math.floor(pokemon.defense * pct / 100))
+    pokemon.defense += gain
+    return `+${gain} Defensa`
+  }
+  if (stat === 'speed') {
+    const gain = Math.max(2, Math.floor(pokemon.speed * pct / 100))
+    pokemon.speed += gain
+    return `+${gain} Velocidad`
+  }
+  return ''
+}
+
+function unequipRelic(pokemon: Pokemon) {
   if (!pokemon.heldItem) return null
-
-  const heldItemName = pokemon.heldItem
-  const item = ITEMS.find(i => i.name === heldItemName)
+  const item = RELICS.find(i => i.id === pokemon.heldItem)
   if (!item) return null
-
-  pokemon.attack -= item.bonus.attack || 0
-  pokemon.defense -= item.bonus.defense || 0
-  pokemon.speed -= item.bonus.speed || 0
-  if (item.bonus.hp) {
-    pokemon.maxHp -= item.bonus.hp
-    pokemon.hp = Math.min(pokemon.hp - item.bonus.hp, pokemon.maxHp)
+  const b = item.bonus || {}
+  pokemon.attack  -= b.attack  || 0
+  pokemon.defense -= b.defense || 0
+  pokemon.speed   -= b.speed   || 0
+  if (b.hp) {
+    pokemon.maxHp -= b.hp
+    pokemon.hp = Math.min(pokemon.hp, pokemon.maxHp)
     if (pokemon.maxHp < 1) pokemon.maxHp = 1
-    if (pokemon.hp < 1) pokemon.hp = 1
+    if (pokemon.hp   < 1) pokemon.hp   = 1
   }
   pokemon.heldItem = undefined
-
   return item
 }
 
-export function equipItem(pokemon: Pokemon, item: Item): Item | null {
-  const oldItem = unequipItem(pokemon)
-
-  pokemon.attack += item.bonus.attack || 0
-  pokemon.defense += item.bonus.defense || 0
-  pokemon.speed += item.bonus.speed || 0
-  if (item.bonus.hp) {
-    pokemon.maxHp += item.bonus.hp
-    pokemon.hp = Math.min(pokemon.hp + item.bonus.hp, pokemon.maxHp)
+export function equipRelic(pokemon: Pokemon, item: Item): Item | null {
+  const old = unequipRelic(pokemon)
+  const b = item.bonus || {}
+  pokemon.attack  += b.attack  || 0
+  pokemon.defense += b.defense || 0
+  pokemon.speed   += b.speed   || 0
+  if (b.hp) {
+    pokemon.maxHp += b.hp
+    pokemon.hp = Math.min(pokemon.hp + b.hp, pokemon.maxHp)
     if (pokemon.maxHp < 1) pokemon.maxHp = 1
-    if (pokemon.hp < 1) pokemon.hp = 1
+    if (pokemon.hp   < 1) pokemon.hp   = 1
   }
-  ;(pokemon as any).heldItem = item.name
+  ;(pokemon as any).heldItem = item.id
+  return old
+}
 
-  return oldItem
+// Legacy alias — kept so BagScene/BattleScene imports don't break
+export function equipItem(pokemon: Pokemon, item: Item): Item | null {
+  if (item.category === 'vitamin') {
+    applyVitamin(pokemon, item)
+    return null
+  }
+  return equipRelic(pokemon, item)
 }

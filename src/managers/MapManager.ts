@@ -10,6 +10,14 @@ export interface MapConfig {
   bgColor: string
   accentColor: string
   themeName: string
+  routeName: string
+  locationBgUrl: string
+  bossMaxLevel: number
+  wildMinLevel: number
+  wildMaxLevel: number
+  isSpecialZone?: boolean
+  ghostOnly?: boolean
+  towerMap?: boolean
 }
 
 export default class MapManager {
@@ -17,51 +25,67 @@ export default class MapManager {
   maps: MapConfig[] = [
     {
       id: 1, name: "Medalla Roca de Brock", gymLeaderName: 'Brock',
-      difficulty: 1, platformCount: 8,
-      signaturePokemonDexId: 95, // Onix
-      bgColor: '#5a3a1a', accentColor: '#B8A038', themeName: 'Ciudad Plateada - Montañas Rocosas'
+      difficulty: 1, platformCount: 8, bossMaxLevel: 14, wildMinLevel: 3, wildMaxLevel: 6,
+      signaturePokemonDexId: 95,
+      bgColor: '#5a3a1a', accentColor: '#B8A038', themeName: 'Ciudad Plateada - Montañas Rocosas',
+      routeName: 'Ruta 2', locationBgUrl: '/assets/locations/map-1-pewter.png'
     },
     {
-      id: 2, name: "Misty's Cascade Badge", gymLeaderName: 'Misty',
-      difficulty: 2, platformCount: 10,
-      signaturePokemonDexId: 121, // Starmie
-      bgColor: '#1a3a5a', accentColor: '#6890F0', themeName: 'Cerulean Cave - Underwater'
+      id: 2, name: "Medalla Cascada de Misty", gymLeaderName: 'Misty',
+      difficulty: 2, platformCount: 10, bossMaxLevel: 21, wildMinLevel: 8, wildMaxLevel: 12,
+      signaturePokemonDexId: 121,
+      bgColor: '#1a3a5a', accentColor: '#6890F0', themeName: 'Ciudad Celeste - Cueva Azulada',
+      routeName: 'Ruta 4', locationBgUrl: '/assets/locations/map-2-cerulean.png'
     },
     {
-      id: 3, name: "Surge's Thunder Badge", gymLeaderName: 'Lt. Surge',
-      difficulty: 3, platformCount: 12,
-      signaturePokemonDexId: 26, // Raichu
-      bgColor: '#3a3a1a', accentColor: '#F8D030', themeName: 'Vermilion City - Power Plant'
+      id: 3, name: "Medalla Trueno de Lt. Surge", gymLeaderName: 'Lt. Surge',
+      difficulty: 3, platformCount: 12, bossMaxLevel: 24, wildMinLevel: 15, wildMaxLevel: 22,
+      signaturePokemonDexId: 26,
+      bgColor: '#3a3a1a', accentColor: '#F8D030', themeName: 'Ciudad Carmín - Planta Eléctrica',
+      routeName: 'Ruta 6', locationBgUrl: '/assets/locations/Ciudad_Carmin_HGSS.webp'
     },
     {
-      id: 4, name: "Erika's Rainbow Badge", gymLeaderName: 'Erika',
-      difficulty: 3, platformCount: 12,
-      signaturePokemonDexId: 71, // Victreebel
-      bgColor: '#1a4a1a', accentColor: '#78C850', themeName: 'Celadon City - Forest Garden'
+      id: 0, name: "Torre Pokémon", gymLeaderName: 'Marowak Fantasma',
+      difficulty: 3, platformCount: 10, bossMaxLevel: 30, wildMinLevel: 22, wildMaxLevel: 28,
+      signaturePokemonDexId: 94,
+      bgColor: '#1a0a2a', accentColor: '#705898', themeName: 'Pueblo Lavanda - Torre Pokémon',
+      routeName: 'Torre Pokémon', locationBgUrl: '/assets/locations/map-1-pewter.png',
+      isSpecialZone: true, ghostOnly: true, towerMap: true
     },
     {
-      id: 5, name: "Koga's Soul Badge", gymLeaderName: 'Koga',
-      difficulty: 4, platformCount: 14,
-      signaturePokemonDexId: 49, // Venomoth
-      bgColor: '#3a1a3a', accentColor: '#A040A0', themeName: 'Fuchsia City - Toxic Marsh'
+      id: 4, name: "Medalla Arcoíris de Erika", gymLeaderName: 'Erika',
+      difficulty: 3, platformCount: 12, bossMaxLevel: 29, wildMinLevel: 18, wildMaxLevel: 22,
+      signaturePokemonDexId: 71,
+      bgColor: '#1a4a1a', accentColor: '#78C850', themeName: 'Ciudad Azulona - Jardín Frondoso',
+      routeName: 'Ruta 7', locationBgUrl: '/assets/locations/Ciudad_Azulona_cuarta_generacion.webp'
     },
     {
-      id: 6, name: "Sabrina's Marsh Badge", gymLeaderName: 'Sabrina',
-      difficulty: 4, platformCount: 14,
-      signaturePokemonDexId: 65, // Alakazam
-      bgColor: '#4a1a4a', accentColor: '#F85888', themeName: 'Saffron City - Psychic Realm'
+      id: 5, name: "Medalla Alma de Koga", gymLeaderName: 'Koga',
+      difficulty: 4, platformCount: 14, bossMaxLevel: 43, wildMinLevel: 22, wildMaxLevel: 30,
+      signaturePokemonDexId: 49,
+      bgColor: '#3a1a3a', accentColor: '#A040A0', themeName: 'Ciudad Fucsia - Pantano Tóxico',
+      routeName: 'Ruta 15', locationBgUrl: '/assets/locations/Ciudad_Fucsia_HGSS.webp'
     },
     {
-      id: 7, name: "Blaine's Volcano Badge", gymLeaderName: 'Blaine',
-      difficulty: 5, platformCount: 16,
-      signaturePokemonDexId: 59, // Arcanine
-      bgColor: '#5a1a1a', accentColor: '#F08030', themeName: 'Cinnabar Island - Volcano'
+      id: 6, name: "Medalla Páramo de Sabrina", gymLeaderName: 'Sabrina',
+      difficulty: 4, platformCount: 14, bossMaxLevel: 43, wildMinLevel: 20, wildMaxLevel: 30,
+      signaturePokemonDexId: 65,
+      bgColor: '#4a1a4a', accentColor: '#F85888', themeName: 'Ciudad Azafrán - Reino Psíquico',
+      routeName: 'Ruta 8', locationBgUrl: '/assets/locations/Ciudad_Azafran_HGSS.webp'
     },
     {
-      id: 8, name: "Giovanni's Earth Badge", gymLeaderName: 'Giovanni',
-      difficulty: 5, platformCount: 18,
-      signaturePokemonDexId: 112, // Rhydon
-      bgColor: '#3a3a3a', accentColor: '#E0C068', themeName: 'Viridian City - Hidden Cave'
+      id: 7, name: "Medalla Volcán de Blaine", gymLeaderName: 'Blaine',
+      difficulty: 5, platformCount: 16, bossMaxLevel: 47, wildMinLevel: 30, wildMaxLevel: 40,
+      signaturePokemonDexId: 59,
+      bgColor: '#5a1a1a', accentColor: '#F08030', themeName: 'Isla Canela - Volcán',
+      routeName: 'Ruta 21', locationBgUrl: '/assets/locations/Isla_Canela_HGSS.webp'
+    },
+    {
+      id: 8, name: "Medalla Tierra de Giovanni", gymLeaderName: 'Giovanni',
+      difficulty: 5, platformCount: 18, bossMaxLevel: 50, wildMinLevel: 35, wildMaxLevel: 45,
+      signaturePokemonDexId: 112,
+      bgColor: '#3a3a3a', accentColor: '#E0C068', themeName: 'Ciudad Verde - Cueva Oculta',
+      routeName: 'Ruta 22', locationBgUrl: '/assets/locations/Ciudad_Verde_HGSS.webp'
     }
   ]
   collectedMedals: Medal[] = []

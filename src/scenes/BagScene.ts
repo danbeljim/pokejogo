@@ -1,7 +1,8 @@
 import Phaser from 'phaser'
 import { Pokemon } from '../entities/Pokemon'
-import { Item, equipItem } from '../data/Items'
+import { Item, equipItem, applyVitamin, RELICS } from '../data/Items'
 import { spriteKey } from '../entities/PokemonFactory'
+import { itemSpriteKey } from '../data/GameAssets'
 
 export interface BagSceneData {
   playerTeam: Pokemon[]
@@ -53,19 +54,27 @@ export default class BagScene extends Phaser.Scene {
     }
 
     this.payload.playerBag.forEach((item, i) => {
-      const y = 90 + i * 36
+      const y = 90 + i * 40
       const isSel = this.selectedIdx === i
       const bg = this.add.graphics()
       bg.fillStyle(isSel ? 0x445588 : 0x222244, 1)
       bg.lineStyle(2, isSel ? 0xFFD700 : 0x4488FF, 1)
-      bg.fillRoundedRect(20, y, 340, 32, 6)
-      bg.strokeRoundedRect(20, y, 340, 32, 6)
+      bg.fillRoundedRect(20, y, 340, 36, 6)
+      bg.strokeRoundedRect(20, y, 340, 36, 6)
       this.root!.add(bg)
 
-      const t = this.add.text(30, y + 6, `${item.name} — ${item.description}`, {
-        font: '12px Arial', color: '#ffffff'
-      })
+      const iconKey = itemSpriteKey(item.id)
+      if (this.textures.exists(iconKey)) {
+        const icon = this.add.image(38, y + 18, iconKey).setDisplaySize(28, 28)
+        this.root!.add(icon)
+      }
+
+      const tag = item.category === 'vitamin' ? '[V]' : '[R]'
+      const tagColor = item.category === 'vitamin' ? '#88ff88' : '#ffaa44'
+      const t = this.add.text(56, y + 4, `${tag} ${item.name}`, { font: 'bold 12px Arial', color: tagColor })
+      const d = this.add.text(56, y + 20, item.description, { font: '11px Arial', color: '#cccccc' })
       this.root!.add(t)
+      this.root!.add(d)
 
       const zone = this.add.zone(20, y, 340, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true })
       zone.on('pointerdown', () => {
@@ -92,7 +101,7 @@ export default class BagScene extends Phaser.Scene {
 
       const sKey = spriteKey(p.id, false)
       if (this.textures.exists(sKey)) {
-        const img = this.add.image(430, y + 30, sKey).setScale(0.8)
+        const img = this.add.image(430, y + 30, sKey).setDisplaySize(52, 52)
         this.root!.add(img)
       }
 
@@ -105,12 +114,22 @@ export default class BagScene extends Phaser.Scene {
       }))
 
       if (this.selectedItem) {
-        const btn = this.add.text(740, y + 30, '[Equipar]', {
-          font: 'bold 12px Arial', color: '#FFD700',
+        const isVitamin = this.selectedItem.category === 'vitamin'
+        const btnLabel = isVitamin ? '[Usar]' : '[Equipar]'
+        const btnColor = isVitamin ? '#88ff88' : '#FFD700'
+        const btn = this.add.text(740, y + 30, btnLabel, {
+          font: 'bold 12px Arial', color: btnColor,
           backgroundColor: '#222', padding: { x: 8, y: 4 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true })
         btn.on('pointerdown', () => this.equip(p))
         this.root!.add(btn)
+      } else if (p.heldItem) {
+        const unBtn = this.add.text(740, y + 30, '[Desequipar]', {
+          font: 'bold 12px Arial', color: '#ff8888',
+          backgroundColor: '#222', padding: { x: 8, y: 4 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+        unBtn.on('pointerdown', () => this.unequip(p))
+        this.root!.add(unBtn)
       }
     })
 
@@ -127,13 +146,33 @@ export default class BagScene extends Phaser.Scene {
 
   private equip(p: Pokemon) {
     if (!this.selectedItem || this.selectedIdx === undefined) return
-    const oldItem = equipItem(p, this.selectedItem)
-    this.payload.playerBag.splice(this.selectedIdx, 1)
-    if (oldItem) {
-      this.payload.playerBag.push(oldItem)
+    if (this.selectedItem.category === 'vitamin') {
+      applyVitamin(p, this.selectedItem)
+      this.payload.playerBag.splice(this.selectedIdx, 1)
+    } else {
+      const oldItem = equipItem(p, this.selectedItem)
+      this.payload.playerBag.splice(this.selectedIdx, 1)
+      if (oldItem) this.payload.playerBag.push(oldItem)
     }
     this.selectedItem = undefined
     this.selectedIdx = undefined
+    this.render()
+  }
+
+  private unequip(p: Pokemon) {
+    if (!p.heldItem) return
+    const item = RELICS.find(i => i.id === p.heldItem)
+    if (!item) return
+    const b = item.bonus || {}
+    p.attack  -= b.attack  || 0
+    p.defense -= b.defense || 0
+    p.speed   -= b.speed   || 0
+    if (b.hp) {
+      p.maxHp -= b.hp
+      p.hp = Math.min(p.hp, p.maxHp)
+    }
+    p.heldItem = undefined
+    this.payload.playerBag.push(item)
     this.render()
   }
 

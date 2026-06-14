@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { Pokemon } from '../entities/Pokemon'
 import { Item, getRandomItems } from '../data/Items'
+import { itemSpriteKey } from '../data/GameAssets'
 
 export interface ItemPickerData {
   playerTeam: Pokemon[]
@@ -22,35 +23,57 @@ export default class ItemPickerScene extends Phaser.Scene {
   }
 
   create() {
+    const W = this.scale.width
+    const H = this.scale.height
+    const cx = W / 2
     this.cameras.main.setBackgroundColor('#0a0a1a')
 
-    this.add.text(400, 40, '¡Encontraste 3 objetos! Elige uno para tu mochila:', {
-      font: 'bold 20px Arial',
+    this.add.text(cx, H * 0.06, '¡Encontraste 3 objetos! Elige uno para tu mochila:', {
+      font: `bold ${Math.round(H * 0.03)}px Arial`,
       color: '#FFD700'
     }).setOrigin(0.5)
 
+    const cardW = Math.round(W * 0.14)
+    const cardH = Math.round(H * 0.32)
+    const gap = Math.round(W * 0.04)
+    const totalW = cardW * 3 + gap * 2
+    const startX = cx - totalW / 2 + cardW / 2
+    const cardCY = H * 0.48
+
     this.items.forEach((item, i) => {
-      const x = 150 + i * 250
-      const y = 220
+      const x = startX + i * (cardW + gap)
+      const y = cardCY
 
       const bg = this.add.graphics()
       bg.fillStyle(0x222244, 1)
       bg.lineStyle(2, 0x4488FF, 1)
-      bg.fillRoundedRect(x - 100, y - 60, 200, 180, 8)
-      bg.strokeRoundedRect(x - 100, y - 60, 200, 180, 8)
+      bg.fillRoundedRect(x - cardW / 2, y - cardH / 2, cardW, cardH, 10)
+      bg.strokeRoundedRect(x - cardW / 2, y - cardH / 2, cardW, cardH, 10)
 
-      this.add.text(x, y - 25, item.name, {
-        font: 'bold 16px Arial', color: '#ffffff'
+      const iconKey = itemSpriteKey(item.id)
+      const iconSize = Math.round(H * 0.1)
+      if (this.textures.exists(iconKey)) {
+        this.add.image(x, y - cardH * 0.3, iconKey).setDisplaySize(iconSize, iconSize)
+      }
+
+      const tagColor = item.category === 'vitamin' ? '#88ff88' : '#ffaa44'
+      const tag = item.category === 'vitamin' ? 'Vitamina' : 'Reliquia'
+      this.add.text(x, y - cardH * 0.05, item.name, {
+        font: `bold ${Math.round(H * 0.025)}px Arial`, color: '#ffffff'
       }).setOrigin(0.5)
 
-      this.add.text(x, y + 20, item.description, {
-        font: '13px Arial', color: '#aaccff',
-        align: 'center', wordWrap: { width: 180 }
+      this.add.text(x, y + cardH * 0.08, `[${tag}]`, {
+        font: `${Math.round(H * 0.018)}px Arial`, color: tagColor
       }).setOrigin(0.5)
 
-      const btn = this.add.text(x, y + 90, '[Elegir]', {
-        font: 'bold 14px Arial', color: '#FFD700',
-        backgroundColor: '#222', padding: { x: 12, y: 6 }
+      this.add.text(x, y + cardH * 0.2, item.description, {
+        font: `${Math.round(H * 0.018)}px Arial`, color: '#aaccff',
+        align: 'center', wordWrap: { width: cardW - 20 }
+      }).setOrigin(0.5)
+
+      const btn = this.add.text(x, y + cardH * 0.35, '[Elegir]', {
+        font: `bold ${Math.round(H * 0.022)}px Arial`, color: '#FFD700',
+        backgroundColor: '#222', padding: { x: 14, y: 8 }
       }).setOrigin(0.5).setInteractive({ useHandCursor: true })
 
       btn.on('pointerover', () => btn.setColor('#ffffff'))

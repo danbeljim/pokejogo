@@ -49,24 +49,24 @@ export default class PlatformManager {
   private draw() {
     if (!this.map) return
 
-    // Draw lines first (behind nodes)
     this.linesGraphics = this.scene.add.graphics()
     this.linesGraphics.setDepth(1)
 
     this.map.nodes.forEach(node => {
-      node.connections.forEach(targetId => {
-        const target = this.map!.nodes[targetId]
+      if (node.connections.length === 0) return
+      const targets = node.connections.map(id => this.map!.nodes[id])
+
+      targets.forEach(target => {
         this.drawDashedLine(node.x, node.y, target.x, target.y, 0x888888, 0.6)
       })
     })
 
-    // Draw nodes
     this.map.nodes.forEach(node => this.drawNode(node))
   }
 
 
   private redrawNodes() {
-    this.hideTrainerTooltip()
+    this.hideNodeTooltip()
     this.nodeGraphics.forEach(c => c.destroy())
     this.nodeGraphics.clear()
     this.maskShapes.forEach(m => m.destroy())
@@ -80,74 +80,71 @@ export default class PlatformManager {
 
     const isCurrent = node.id === this.currentNodeId
     const isClickable = this.isClickable(node)
+    const visited = node.visited && !isCurrent
     const color = this.getColorForEventType(node.eventType)
+    const radius = node.eventType === PlatformEventType.BOSS ? 48 : 38
 
     const container = this.scene.add.container(node.x, node.y)
     container.setDepth(2)
 
-    // Outer ring (for current/clickable highlight)
+    // Outer ring for current / clickable
     if (isCurrent) {
       const ring = this.scene.add.graphics()
       ring.lineStyle(4, 0xFFFFFF, 1)
-      ring.strokeCircle(0, 0, 26)
+      ring.strokeCircle(0, 0, radius + 6)
       container.add(ring)
     } else if (isClickable) {
       const ring = this.scene.add.graphics()
       ring.lineStyle(3, 0xFFFF00, 1)
-      ring.strokeCircle(0, 0, 24)
+      ring.strokeCircle(0, 0, radius + 5)
       container.add(ring)
     }
 
-    // Node circle (background)
+    // Circle background
     const circle = this.scene.add.graphics()
-    const radius = node.eventType === PlatformEventType.BOSS ? 28 : 22
-    circle.fillStyle(color, node.visited && !isCurrent ? 0.4 : 1)
+    circle.fillStyle(color, visited ? 0.4 : 1)
     circle.fillCircle(0, 0, radius)
     circle.lineStyle(2, 0x000000, 1)
     circle.strokeCircle(0, 0, radius)
     container.add(circle)
 
-    // Icon: real sprite based on event type
+    // Sprite inside circle with mask
     const iconSprite = this.makeNodeIcon(node)
     if (iconSprite) {
-      if (node.visited && !isCurrent) iconSprite.setAlpha(0.5)
+      const spriteSize = radius * 2 - 6
+      iconSprite.setDisplaySize(spriteSize, spriteSize)
+      if (visited) iconSprite.setAlpha(0.5)
       container.add(iconSprite)
 
-      // Circular clip mask so all icons stay inside node circle
-      const maskRadius = node.eventType === PlatformEventType.BOSS ? 27 : 21
       const maskShape = this.scene.make.graphics({ x: node.x, y: node.y }, false)
       maskShape.fillStyle(0xffffff)
-      maskShape.fillCircle(0, 0, maskRadius)
-      const mask = maskShape.createGeometryMask()
-      iconSprite.setMask(mask)
+      maskShape.fillCircle(0, 0, radius - 1)
+      iconSprite.setMask(maskShape.createGeometryMask())
       this.maskShapes.push(maskShape)
     } else {
       const icon = this.scene.add.text(0, 0, this.getIconForEventType(node.eventType), {
-        font: 'bold 18px Arial',
-        color: '#ffffff'
+        font: `bold ${node.eventType === PlatformEventType.BOSS ? 32 : 24}px Arial`,
+        color: visited ? '#888888' : '#ffffff'
       }).setOrigin(0.5)
       container.add(icon)
     }
 
-    const isTrainer = node.eventType === PlatformEventType.TRAINER_BATTLE
-    if (isClickable || isTrainer) {
-      container.setSize(50, 50)
-      container.setInteractive({ useHandCursor: isClickable })
-      if (isClickable) {
-        container.on('pointerdown', () => {
-          this.hideTrainerTooltip()
-          if (this.onNodeClick) this.onNodeClick(node)
-        })
-      }
-      container.on('pointerover', () => {
-        circle.setScale(1.15)
-        if (isTrainer) this.showTrainerTooltip(node)
-      })
-      container.on('pointerout', () => {
-        circle.setScale(1.0)
-        if (isTrainer) this.hideTrainerTooltip()
+    container.setSize((radius + 6) * 2, (radius + 6) * 2)
+    container.setInteractive({ useHandCursor: isClickable })
+    if (isClickable) {
+      container.on('pointerdown', () => {
+        this.hideNodeTooltip()
+        if (this.onNodeClick) this.onNodeClick(node)
       })
     }
+    container.on('pointerover', () => {
+      circle.setScale(1.12)
+      this.showNodeTooltip(node)
+    })
+    container.on('pointerout', () => {
+      circle.setScale(1.0)
+      this.hideNodeTooltip()
+    })
 
     this.nodeGraphics.set(node.id, container)
   }
@@ -166,8 +163,8 @@ export default class PlatformManager {
         scale = 1.8
         break
       case PlatformEventType.WILD_POKEMON:
-        key = this.scene.textures.exists('tall-grass-tile') ? 'tall-grass-tile' : 'tall-grass'
-        scale = 0.5
+        key = spriteKey(41)
+        scale = 1.0
         break
       case PlatformEventType.TRAINER_BATTLE: {
         const tk = TRAINER_KEYS[node.id % TRAINER_KEYS.length]
@@ -175,6 +172,14 @@ export default class PlatformManager {
         scale = 0.9
         break
       }
+      case PlatformEventType.POKEMON_CENTER:
+        key = itemSpriteKey('pokemon_center')
+        scale = 1.8
+        break
+      case PlatformEventType.RANDOM:
+        key = itemSpriteKey('random')
+        scale = 1.8
+        break
       case PlatformEventType.BOSS: {
         const gkey = gymLeaderSpriteKey(this.bossGymLeaderName)
         if (this.scene.textures.exists(gkey)) {
@@ -191,36 +196,23 @@ export default class PlatformManager {
     }
 
     if (key && this.scene.textures.exists(key)) {
-      const img = this.scene.add.image(0, 0, key)
-      if (key === 'tall-grass-tile' || key === 'tall-grass') {
-        img.setDisplaySize(44, 44)
-      } else {
-        img.setScale(scale)
-      }
-      return img
+      return this.scene.add.image(0, 0, key)
     }
     return undefined
   }
 
   private drawDashedLine(x1: number, y1: number, x2: number, y2: number, color: number, alpha: number) {
     if (!this.linesGraphics) return
-    const dashLen = 10
-    const gapLen = 5
     const dx = x2 - x1
     const dy = y2 - y1
     const dist = Math.sqrt(dx * dx + dy * dy)
-
-    this.linesGraphics.lineStyle(2, color, alpha)
+    const step = 10
+    this.linesGraphics.fillStyle(color, alpha)
     let traveled = 0
-    while (traveled < dist) {
-      const segEnd = Math.min(traveled + dashLen, dist)
-      const t1 = traveled / dist
-      const t2 = segEnd / dist
-      this.linesGraphics.beginPath()
-      this.linesGraphics.moveTo(x1 + dx * t1, y1 + dy * t1)
-      this.linesGraphics.lineTo(x1 + dx * t2, y1 + dy * t2)
-      this.linesGraphics.strokePath()
-      traveled += dashLen + gapLen
+    while (traveled <= dist) {
+      const t = traveled / dist
+      this.linesGraphics.fillCircle(x1 + dx * t, y1 + dy * t, 2.5)
+      traveled += step
     }
   }
 
@@ -237,6 +229,10 @@ export default class PlatformManager {
       case PlatformEventType.WILD_POKEMON: return 0xFF9800
       case PlatformEventType.ITEM_PICKUP: return 0x2196F3
       case PlatformEventType.BOSS: return 0xFFD700
+      case PlatformEventType.POKEMON_CENTER: return 0xFF69B4
+      case PlatformEventType.RANDOM: return 0xAA44FF
+      case PlatformEventType.MEMORIAL: return 0x9370DB
+      case PlatformEventType.NARRATIVE: return 0x556B8F
       default: return 0x808080
     }
   }
@@ -248,35 +244,103 @@ export default class PlatformManager {
       case PlatformEventType.WILD_POKEMON: return 'W'
       case PlatformEventType.ITEM_PICKUP: return 'I'
       case PlatformEventType.BOSS: return 'B'
+      case PlatformEventType.POKEMON_CENTER: return '+'
+      case PlatformEventType.RANDOM: return '?'
+      case PlatformEventType.MEMORIAL: return '🙏'
+      case PlatformEventType.NARRATIVE: return '📜'
       default: return '?'
     }
   }
 
-  private showTrainerTooltip(node: MapNode) {
-    this.hideTrainerTooltip()
-    const team: Pokemon[] = node.eventData?.team || []
-    const header = `Entrenador · ${team.length} Pokémon`
-    const lines = team.length
-      ? team.map(p => `• ${p.name} Nv.${p.level}`)
-      : ['(equipo oculto)']
-    const txt = this.scene.add.text(0, 0, [header, ...lines].join('\n'), {
-      font: '11px Arial',
-      color: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: 6, y: 4 }
-    })
-    txt.setDepth(200)
-    const w = txt.width
-    const h = txt.height
-    let x = node.x + 28
-    let y = node.y - h - 24
-    if (x + w > 796) x = node.x - w - 28
-    if (y < 4) y = node.y + 28
-    txt.setPosition(x, y)
-    this.tooltip = txt
+  private getNodeTooltipLines(node: MapNode): string[] {
+    switch (node.eventType) {
+      case PlatformEventType.TRAINER_BATTLE: {
+        const team: Pokemon[] = node.eventData?.team || []
+        const lines = team.length ? team.map(p => `• ${p.name} Nv.${p.level}`) : ['(equipo oculto)']
+        return [`ENTRENADOR`, ...lines]
+      }
+      case PlatformEventType.BOSS: {
+        const team: Pokemon[] = node.eventData?.team || []
+        const lines = team.length ? team.map(p => `${p.name} Nv.${p.level}`) : ['???']
+        return [`LIDER ${this.bossGymLeaderName.toUpperCase()}`, ...lines]
+      }
+      case PlatformEventType.POKEMON_CAPTURE:
+        return ['CAPTURA', 'Lanza una Poke Ball\ny atrapa un Pokemon\nsalvaje.']
+      case PlatformEventType.WILD_POKEMON:
+        return ['POKEMON SALVAJE', 'Aparece un Pokemon\nsalvaje. Combate\no huye.']
+      case PlatformEventType.ITEM_PICKUP:
+        return ['OBJETO', 'Recoge un objeto\nutil para tu\naventura.']
+      case PlatformEventType.POKEMON_CENTER:
+        return ['CENTRO POKEMON', 'Cura a todos tus\nPokemon\ncompletamente.']
+      case PlatformEventType.RANDOM:
+        return ['EVENTO MISTERIOSO', 'Algo inesperado\nocurrira. Bueno\no malo...']
+      case PlatformEventType.MEMORIAL:
+        return ['MEMORIAL', 'Un lugar de\nrecuerdo y\nreflexion.']
+      case PlatformEventType.NARRATIVE:
+        return ['HISTORIA', 'Un evento\nnarrativo que\navanza la trama.']
+      default:
+        return ['???']
+    }
   }
 
-  private hideTrainerTooltip() {
+  private showNodeTooltip(node: MapNode) {
+    this.hideNodeTooltip()
+    const lines = this.getNodeTooltipLines(node)
+
+    const boxW = 300
+    const boxH = 130
+
+    let bx = node.x + 32
+    let by = node.y - boxH - 10
+    if (bx + boxW > this.scene.scale.width - 10) bx = node.x - boxW - 32
+    if (by < 4) by = node.y + 32
+
+    const container = this.scene.add.container(bx, by)
+    container.setDepth(200)
+
+    if (this.scene.textures.exists('cajadialogo')) {
+      const bg = this.scene.add.image(0, 0, 'cajadialogo')
+        .setOrigin(0, 0)
+        .setDisplaySize(boxW, boxH)
+      container.add(bg)
+    } else {
+      const fallback = this.scene.add.graphics()
+      fallback.fillStyle(0xffffff, 1)
+      fallback.fillRect(0, 0, boxW, boxH)
+      fallback.lineStyle(3, 0x000000, 1)
+      fallback.strokeRect(0, 0, boxW, boxH)
+      container.add(fallback)
+    }
+
+    const innerW = boxW - 32
+
+    // Title line
+    const title = this.scene.add.text(boxW / 2, 26, lines[0], {
+      fontFamily: '"Press Start 2P"',
+      fontSize: '13px',
+      color: '#000000',
+      align: 'center',
+      wordWrap: { width: innerW }
+    }).setOrigin(0.5, 0)
+    container.add(title)
+
+    // Body lines (remaining)
+    if (lines.length > 1) {
+      const body = this.scene.add.text(boxW / 2, 26 + title.height + 8, lines.slice(1).join('\n'), {
+        fontFamily: '"Press Start 2P"',
+        fontSize: '10px',
+        color: '#000000',
+        align: 'center',
+        wordWrap: { width: innerW },
+        lineSpacing: 4
+      }).setOrigin(0.5, 0)
+      container.add(body)
+    }
+
+    this.tooltip = container
+  }
+
+  private hideNodeTooltip() {
     if (this.tooltip) {
       this.tooltip.destroy()
       this.tooltip = undefined
@@ -284,7 +348,7 @@ export default class PlatformManager {
   }
 
   clearMap() {
-    this.hideTrainerTooltip()
+    this.hideNodeTooltip()
     this.nodeGraphics.forEach(c => c.destroy())
     this.nodeGraphics.clear()
     this.maskShapes.forEach(m => m.destroy())

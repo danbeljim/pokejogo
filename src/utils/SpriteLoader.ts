@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { spriteKey, spriteUrl } from '../entities/PokemonFactory'
-import { ITEM_SPRITES, itemSpriteKey, TRAINER_SPRITES, trainerSpriteKey, GYM_LEADER_SPRITES, gymLeaderSpriteKey } from '../data/GameAssets'
+import { ITEM_SPRITES, itemSpriteKey, TRAINER_SPRITES, trainerSpriteKey, GYM_LEADER_SPRITES, gymLeaderSpriteKey, BADGE_SPRITES, badgeSpriteKey } from '../data/GameAssets'
 
 export function loadSprite(scene: Phaser.Scene, dexId: number, back: boolean = false): Promise<string> {
   const key = spriteKey(dexId, back)
@@ -36,6 +36,15 @@ export function preloadItemSprites(scene: Phaser.Scene) {
 export function preloadTrainerSprites(scene: Phaser.Scene) {
   Object.entries(TRAINER_SPRITES).forEach(([id, url]) => {
     const key = trainerSpriteKey(id)
+    if (!scene.textures.exists(key)) {
+      scene.load.image(key, url)
+    }
+  })
+}
+
+export function preloadBadgeSprites(scene: Phaser.Scene) {
+  Object.entries(BADGE_SPRITES).forEach(([name, url]) => {
+    const key = badgeSpriteKey(name)
     if (!scene.textures.exists(key)) {
       scene.load.image(key, url)
     }

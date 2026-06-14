@@ -3,7 +3,11 @@ export enum PlatformEventType {
   TRAINER_BATTLE = 'trainer',
   WILD_POKEMON = 'wild',
   ITEM_PICKUP = 'item',
-  BOSS = 'boss'
+  BOSS = 'boss',
+  POKEMON_CENTER = 'pokemon_center',
+  RANDOM = 'random',
+  MEMORIAL = 'memorial',
+  NARRATIVE = 'narrative'
 }
 
 export interface PlatformEvent {
@@ -27,4 +31,5 @@ export interface Trainer {
 export interface Medal {
   name: string
   badgeNumber: number
+  gymLeaderName: string
 }

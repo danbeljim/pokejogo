@@ -55,7 +55,7 @@ export default class TeamOrderScene extends Phaser.Scene {
 
       const sKey = spriteKey(p.id, false)
       if (this.textures.exists(sKey)) {
-        const img = this.add.image(260, y + 35, sKey).setScale(0.9)
+        const img = this.add.image(260, y + 35, sKey).setDisplaySize(52, 52)
         this.root!.add(img)
       }
 

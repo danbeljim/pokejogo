@@ -20,6 +20,7 @@ export interface PokemonData {
   moves: string[]
   type?: PokemonType
   heldItem?: string
+  traits?: string[]
 }
 
 export class Pokemon implements PokemonData {
@@ -34,6 +35,7 @@ export class Pokemon implements PokemonData {
   moves: string[]
   type: PokemonType
   heldItem?: string
+  traits: string[] = []
   experience: number = 0
 
   constructor(data: PokemonData) {
@@ -48,12 +50,13 @@ export class Pokemon implements PokemonData {
     this.moves = data.moves
     this.type = data.type || 'normal'
     this.heldItem = data.heldItem
+    this.traits = data.traits || []
   }
 
   levelUp(): LevelUpEvent {
     this.level++
     this.maxHp += 5
-    this.hp = this.maxHp
+    this.hp = Math.min(this.hp + 5, this.maxHp)
     this.attack += 3
     this.defense += 2
     this.speed += 2

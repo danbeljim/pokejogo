@@ -35,10 +35,11 @@ const TOWER_FLOOR_POOLS: PlatformEventType[][] = [
 export default class LevelGenerator {
   generateTower(playerMaxLevel: number): GameMap {
     const nodes: MapNode[] = []
+    const mobile = GAME_W < 1000
     const worldWidth = GAME_W
     const floors = TOWER_FLOOR_POOLS.length
-    const minY = Math.round(GAME_H * 0.17)
-    const maxY = Math.round(GAME_H * 0.87)
+    const minY = Math.round(GAME_H * (mobile ? 0.20 : 0.17))
+    const maxY = Math.round(GAME_H * (mobile ? 0.84 : 0.87))
     const rowSpacing = (maxY - minY) / (floors - 1)
     let nextId = 0
     const rowNodes: number[][] = []
@@ -50,9 +51,9 @@ export default class LevelGenerator {
       const cols = nodesPerFloor[f]
       const y = maxY - rowSpacing * f
       const rowSlots: number[] = []
-      const spread = Math.round(worldWidth * 0.25)
-      const colWidth = cols === 1 ? 0 : spread * 2 / (cols - 1)
-      const startX = cols === 1 ? worldWidth / 2 : worldWidth / 2 - spread
+      const halfSpan = Math.round(worldWidth * (mobile ? 0.18 : 0.25))
+      const colWidth = cols === 1 ? 0 : halfSpan * 2 / (cols - 1)
+      const startX = cols === 1 ? worldWidth / 2 : worldWidth / 2 - halfSpan
 
       for (let c = 0; c < cols; c++) {
         const x = cols === 1 ? startX : startX + colWidth * c
@@ -125,10 +126,11 @@ export default class LevelGenerator {
 
   generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5, ghostOnly: boolean = false): GameMap {
     const nodes: MapNode[] = []
+    const mobile = GAME_W < 1000
     const worldWidth = GAME_W
     const rows = 9
-    const minY = Math.round(GAME_H * 0.17)
-    const maxY = Math.round(GAME_H * 0.87)
+    const minY = Math.round(GAME_H * (mobile ? 0.20 : 0.17))
+    const maxY = Math.round(GAME_H * (mobile ? 0.84 : 0.87))
     const rowSpacing = (maxY - minY) / (rows - 1)
 
     let nextId = 0
@@ -144,12 +146,12 @@ export default class LevelGenerator {
       // Center the row based on number of columns
       let colWidth = 0
       let startX = 0
-      const spread = Math.round(worldWidth * 0.3125)
+      const halfSpan = Math.round(worldWidth * (mobile ? 0.19 : 0.15625))
       if (cols === 1) {
         startX = worldWidth / 2
       } else {
-        colWidth = spread * 2 / (cols - 1)
-        startX = worldWidth / 2 - spread
+        colWidth = halfSpan * 2 / (cols - 1)
+        startX = worldWidth / 2 - halfSpan
       }
 
       for (let c = 0; c < cols; c++) {

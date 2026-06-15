@@ -84,8 +84,8 @@ export default class PlatformManager {
     const color = this.getColorForEventType(node.eventType)
     const mobile = this.scene.scale.width < 1000
     const radius = node.eventType === PlatformEventType.BOSS
-      ? (mobile ? 28 : 48)
-      : (mobile ? 20 : 38)
+      ? (mobile ? 22 : 48)
+      : (mobile ? 16 : 38)
 
     const container = this.scene.add.container(node.x, node.y)
     container.setDepth(2)

@@ -29,9 +29,10 @@ export default class PlatformManager {
     if (bossGymLeaderName) this.bossGymLeaderName = bossGymLeaderName
 
     const NODE_ASSETS: [string, string][] = [
-      ['makuhita-icon',  '/assets/random/Makuhita_icono_HOME.png'],
+      ['makuhita-icon',   '/assets/random/Makuhita_icono_HOME.png'],
       ['cientifico-icon', '/assets/random/cientifico.png'],
-      ['baya-icon',      '/assets/random/baya.png'],
+      ['baya-icon',       '/assets/random/baya.png'],
+      ['gemelas-icon',    '/assets/random/gemelas.png'],
     ]
     const missing = NODE_ASSETS.filter(([k]) => !this.scene.textures.exists(k))
     if (missing.length > 0) {
@@ -202,6 +203,10 @@ export default class PlatformManager {
         break
       case PlatformEventType.RANDOM:
         key = undefined
+        break
+      case PlatformEventType.DOUBLE_BATTLE:
+        key = 'gemelas-icon'
+        scale = 1.2
         break
       case PlatformEventType.DOJO:
         key = 'makuhita-icon'

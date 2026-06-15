@@ -14,6 +14,7 @@ export interface BattleData {
   playerBag?: Item[]
   synergyBonuses?: { atk?: number; def?: number; spd?: number }
   battleSpeed?: 1 | 2
+  backgroundKey?: string
   onComplete: (won: boolean) => void
 }
 
@@ -74,6 +75,11 @@ export default class BattleScene extends Phaser.Scene {
     this.cx = this.W / 2
 
     this.cameras.main.setBackgroundColor('#0a0a1a')
+
+    if (this.battleData.backgroundKey && this.textures.exists(this.battleData.backgroundKey)) {
+      const bg = this.add.image(this.cx, this.H / 2, this.battleData.backgroundKey)
+      bg.setDisplaySize(this.W, this.H).setDepth(-1).setAlpha(0.45)
+    }
 
     this.playerPokemon = this.battleData.playerTeam[this.playerIdx]
     this.enemyPokemon = this.battleData.enemyTeam[this.enemyIdx]

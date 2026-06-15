@@ -13,6 +13,7 @@ import { preloadSprites, preloadItemSprites, preloadTrainerSprites, preloadGymLe
 import { MapNode } from '../managers/LevelGenerator'
 import { TRAINER_ICON_DEX, itemSpriteKey, badgeSpriteKey, BADGE_SPRITES } from '../data/GameAssets'
 import { EVOLUTION_TARGET_IDS } from '../data/Evolution'
+import { PlatformEventType } from '../types'
 import { Item } from '../data/Items'
 import { computeActiveSynergy, TeamSynergy, assignRogueTraits } from '../data/RoguelikeData'
 
@@ -85,6 +86,8 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('makuhita-icon', '/assets/random/Makuhita_icono_HOME.png')
     this.load.image('cientifico-icon', '/assets/random/cientifico.png')
     this.load.image('baya-icon', '/assets/random/baya.png')
+    this.load.image('gemelas-icon', '/assets/random/gemelas.png')
+    this.load.image('dobles-bg', '/assets/random/dobles.jpg')
     this.load.image('tall-grass', '/assets/trainers/grass.png')
     this.load.image('tall-grass-tile', '/assets/trainers/Zona_de_hierba_alta_XY.png')
     this.load.image('bici', '/assets/trainers/bici.png')
@@ -711,6 +714,7 @@ export default class GameScene extends Phaser.Scene {
         playerBag: this.playerBag,
         synergyBonuses: syn ? { atk: syn.atkBonus, def: syn.defBonus, spd: syn.spdBonus } : undefined,
         battleSpeed: this.battleSpeed,
+        backgroundKey: result.type === PlatformEventType.DOUBLE_BATTLE ? 'dobles-bg' : undefined,
         onComplete: (won: boolean) => this.onBattleEnd(won, result.battleType!)
       })
     } else if (result.requiresItemPicker) {

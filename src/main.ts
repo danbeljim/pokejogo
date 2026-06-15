@@ -87,26 +87,27 @@ game.events.once(Phaser.Core.Events.READY, () => {
   const orig: Function = im.transformPointer.bind(im)
 
   im.transformPointer = function (pointer: any, pageX: number, pageY: number, wasMove: boolean) {
-    if (!isPortrait) return orig(pointer, pageX, pageY, wasMove)
+    // Always call orig for bookkeeping (isDown, event ref, button state, etc.)
+    orig(pointer, pageX, pageY, wasMove)
+    if (!isPortrait) return
 
     const vw = window.innerWidth
     const vh = window.innerHeight
     const S = getPortraitScale(vw, vh)
-    const P = Math.min(vw / GAME_W, vh / GAME_H)
 
-    // Rotate +90° to invert the canvas -90° rotation, then scale to game coords
+    // Undo canvas rotate(-90deg): screen touch → game coords
     const gx = (vh / 2 - pageY) / S + GAME_W / 2
     const gy = (pageX - vw / 2) / S + GAME_H / 2
 
-    // Convert game coords back to fake page coords that Phaser's normal transform maps correctly
-    // Phaser: pos = (page - aabbCorner) * displayScale
-    // aabbLeft = vw/2 - S*GAME_H/2, aabbTop = vh/2 - S*GAME_W/2, displayScale = 1/P
-    const aabbLeft = vw / 2 - S * GAME_H / 2
-    const aabbTop = vh / 2 - S * GAME_W / 2
-    const fakePageX = gx * P + aabbLeft
-    const fakePageY = gy * P + aabbTop
-
-    return orig(pointer, fakePageX, fakePageY, wasMove)
+    // Overwrite whatever orig set — only position/world matter for hit testing
+    pointer.position.x = gx
+    pointer.position.y = gy
+    pointer.worldX = gx
+    pointer.worldY = gy
+    if (wasMove) {
+      pointer.midPoint.x = gx
+      pointer.midPoint.y = gy
+    }
   }
 
   window.addEventListener('resize', () => setTimeout(() => {

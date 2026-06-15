@@ -19,18 +19,6 @@ export default class PlatformManager {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
-    this.preloadNodeAssets()
-  }
-
-  private preloadNodeAssets() {
-    const toLoad: [string, string][] = [
-      ['makuhita-icon', '/assets/random/Makuhita_icono_HOME.png'],
-    ]
-    const missing = toLoad.filter(([key]) => !this.scene.textures.exists(key))
-    if (missing.length === 0) return
-    missing.forEach(([key, url]) => this.scene.load.image(key, url))
-    this.scene.load.once('complete', () => this.redrawNodes())
-    this.scene.load.start()
   }
 
   setMap(map: GameMap, onNodeClick: (node: MapNode) => void, bossSignatureDexId?: number, bossGymLeaderName?: string) {
@@ -39,7 +27,23 @@ export default class PlatformManager {
     this.currentNodeId = map.startNodeId
     if (bossSignatureDexId) this.bossSignatureDexId = bossSignatureDexId
     if (bossGymLeaderName) this.bossGymLeaderName = bossGymLeaderName
-    this.draw()
+
+    const DOJO_KEY = 'makuhita-icon'
+    const DOJO_URL = '/assets/random/Makuhita_icono_HOME.png'
+    if (!this.scene.textures.exists(DOJO_KEY)) {
+      this.scene.load.image(DOJO_KEY, DOJO_URL)
+      this.scene.load.once('complete', () => {
+        console.log('[PlatformManager] makuhita-icon loaded, exists:', this.scene.textures.exists(DOJO_KEY))
+        this.draw()
+      })
+      this.scene.load.once('loaderror', (_file: Phaser.Loader.File) => {
+        console.error('[PlatformManager] makuhita-icon load FAILED:', DOJO_URL)
+        this.draw()
+      })
+      this.scene.load.start()
+    } else {
+      this.draw()
+    }
   }
 
   setCurrentNode(nodeId: number) {

@@ -229,13 +229,9 @@ export function createWildPokemon(level: number, dexId?: number, enemyMoves: boo
     ? (POKEMON_LIST.find(p => p.dexId === dexId) || CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)])
     : CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)]
   const bs = BASE_STATS[entry.dexId] || [45, 50, 45, 45]
-  // Additive bonuses — no chained multiplication
-  const flat = getTierBonus(entry.dexId) + getEvoBonus(entry.dexId)
-  const effHp  = bs[0] + Math.round(flat * 0.5)  // HP gets half flat bonus
-  const effAtk = bs[1] + flat
-  const effDef = bs[2] + flat
-  const effSpd = bs[3] + flat
-  const maxHp = calcHp(effHp, level)
+  // Flat bonus applied AFTER level scaling — truly additive, never multiplied
+  const statBonus = getTierBonus(entry.dexId) + getEvoBonus(entry.dexId)
+  const maxHp = calcHp(bs[0], level) + Math.round(statBonus * 0.5)
   const moves = enemyMoves
     ? getMovesForType(entry.type, level)
     : pickMoves(entry.moves, level)
@@ -245,15 +241,16 @@ export function createWildPokemon(level: number, dexId?: number, enemyMoves: boo
     level,
     hp: maxHp,
     maxHp,
-    attack:  calcStat(effAtk, level),
-    defense: calcStat(effDef, level),
-    speed:   calcStat(effSpd, level),
+    attack:  calcStat(bs[1], level) + statBonus,
+    defense: calcStat(bs[2], level) + statBonus,
+    speed:   calcStat(bs[3], level) + statBonus,
     moves,
     type: entry.type,
-    baseHp:  effHp,
-    baseAtk: effAtk,
-    baseDef: effDef,
-    baseSpd: effSpd,
+    baseHp:  bs[0],
+    baseAtk: bs[1],
+    baseDef: bs[2],
+    baseSpd: bs[3],
+    statBonus,
   })
 }
 

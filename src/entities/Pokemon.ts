@@ -35,6 +35,7 @@ export interface PokemonData {
   baseAtk?: number
   baseDef?: number
   baseSpd?: number
+  statBonus?: number  // flat additive bonus applied AFTER level scaling
 }
 
 export class Pokemon implements PokemonData {
@@ -52,6 +53,7 @@ export class Pokemon implements PokemonData {
   traits: string[] = []
   experience: number = 0
   pendingEvoChoice: boolean = false
+  statBonus: number = 0
   baseHp: number
   baseAtk: number
   baseDef: number
@@ -70,12 +72,16 @@ export class Pokemon implements PokemonData {
     this.type = data.type || 'normal'
     this.heldItem = data.heldItem
     this.traits = data.traits || []
-    // Reverse-engineer base stats from current stats if not provided
-    const growthFactor = (1 + 0.04 * Math.pow(data.level, 1.05))
-    this.baseHp  = data.baseHp  ?? Math.max(1, Math.round((data.maxHp - data.level * 0.5) / (1 + 0.05 * Math.pow(data.level, 1.05))))
-    this.baseAtk = data.baseAtk ?? Math.max(1, Math.round(data.attack / growthFactor))
-    this.baseDef = data.baseDef ?? Math.max(1, Math.round(data.defense / growthFactor))
-    this.baseSpd = data.baseSpd ?? Math.max(1, Math.round(data.speed / growthFactor))
+    this.statBonus = data.statBonus ?? 0
+    // Reverse-engineer raw base stats from current stats if not provided
+    // Invert: calcStat(base, lv) = base * sqrt(lv) / 7  → base = stat * 7 / sqrt(lv)
+    // calcHp(base, lv) = base * sqrt(lv) / 4 + lv      → base = (hp - lv) * 4 / sqrt(lv)
+    const sqrtLv = Math.sqrt(data.level)
+    const bonus = this.statBonus
+    this.baseHp  = data.baseHp  ?? Math.max(1, Math.round((data.maxHp  - bonus * 0.5 - data.level) * 4 / sqrtLv))
+    this.baseAtk = data.baseAtk ?? Math.max(1, Math.round((data.attack - bonus) * 7 / sqrtLv))
+    this.baseDef = data.baseDef ?? Math.max(1, Math.round((data.defense - bonus) * 7 / sqrtLv))
+    this.baseSpd = data.baseSpd ?? Math.max(1, Math.round((data.speed  - bonus) * 7 / sqrtLv))
   }
 
   levelUp(): LevelUpEvent {
@@ -83,13 +89,13 @@ export class Pokemon implements PokemonData {
     this.level++
 
     const prevHp = this.hp
-    const newMaxHp = calcHp(this.baseHp, this.level)
+    const newMaxHp = calcHp(this.baseHp, this.level) + Math.round(this.statBonus * 0.5)
     const hpGain = newMaxHp - this.maxHp
     this.maxHp = newMaxHp
     this.hp = Math.min(this.hp + hpGain, this.maxHp)
-    this.attack  = calcStat(this.baseAtk, this.level)
-    this.defense = calcStat(this.baseDef, this.level)
-    this.speed   = calcStat(this.baseSpd, this.level)
+    this.attack  = calcStat(this.baseAtk, this.level) + this.statBonus
+    this.defense = calcStat(this.baseDef, this.level) + this.statBonus
+    this.speed   = calcStat(this.baseSpd, this.level) + this.statBonus
 
     const event: LevelUpEvent = { learnedMoves: [] }
 
@@ -145,16 +151,17 @@ export class Pokemon implements PokemonData {
         135: [65,   65,  60, 130], // Jolteon
         136: [65,  130,  60,  65], // Flareon
       }
+      this.statBonus += evo.statBonusDelta
       const newBs = EVO_BASE_STATS[this.id]
       if (newBs) {
         this.baseHp = newBs[0]; this.baseAtk = newBs[1]
         this.baseDef = newBs[2]; this.baseSpd = newBs[3]
       }
-      this.maxHp   = calcHp(this.baseHp, this.level)
+      this.maxHp   = calcHp(this.baseHp, this.level) + Math.round(this.statBonus * 0.5)
       this.hp      = this.maxHp
-      this.attack  = calcStat(this.baseAtk, this.level)
-      this.defense = calcStat(this.baseDef, this.level)
-      this.speed   = calcStat(this.baseSpd, this.level)
+      this.attack  = calcStat(this.baseAtk, this.level) + this.statBonus
+      this.defense = calcStat(this.baseDef, this.level) + this.statBonus
+      this.speed   = calcStat(this.baseSpd, this.level) + this.statBonus
     }
 
     return event
@@ -167,6 +174,7 @@ export class Pokemon implements PokemonData {
       136: [65,  130,  60,  65],
     }
     this.pendingEvoChoice = false
+    this.statBonus += 8  // stage1 → stage2 delta
     const prevName = this.name
     this.id = toDexId
     this.name = toName
@@ -176,11 +184,11 @@ export class Pokemon implements PokemonData {
       this.baseHp = bs[0]; this.baseAtk = bs[1]
       this.baseDef = bs[2]; this.baseSpd = bs[3]
     }
-    this.maxHp   = calcHp(this.baseHp, this.level)
+    this.maxHp   = calcHp(this.baseHp, this.level) + Math.round(this.statBonus * 0.5)
     this.hp      = this.maxHp
-    this.attack  = calcStat(this.baseAtk, this.level)
-    this.defense = calcStat(this.baseDef, this.level)
-    this.speed   = calcStat(this.baseSpd, this.level)
+    this.attack  = calcStat(this.baseAtk, this.level) + this.statBonus
+    this.defense = calcStat(this.baseDef, this.level) + this.statBonus
+    this.speed   = calcStat(this.baseSpd, this.level) + this.statBonus
     return prevName
   }
 

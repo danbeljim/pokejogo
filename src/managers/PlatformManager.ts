@@ -36,9 +36,18 @@ export default class PlatformManager {
     ]
     const missing = NODE_ASSETS.filter(([k]) => !this.scene.textures.exists(k))
     if (missing.length > 0) {
-      missing.forEach(([k, url]) => this.scene.load.image(k, url))
-      this.scene.load.once('complete', () => this.draw())
-      this.scene.load.once('loaderror', () => this.draw())
+      missing.forEach(([k, url]) => {
+        console.log('[PlatformManager] loading:', k, url)
+        this.scene.load.image(k, url)
+      })
+      this.scene.load.once('complete', () => {
+        console.log('[PlatformManager] load complete, textures:', missing.map(([k]) => k + ':' + this.scene.textures.exists(k)).join(', '))
+        this.draw()
+      })
+      this.scene.load.once('loaderror', (f: Phaser.Loader.File) => {
+        console.error('[PlatformManager] load error:', f.key, f.url)
+        this.draw()
+      })
       this.scene.load.start()
     } else {
       this.draw()
@@ -235,8 +244,10 @@ export default class PlatformManager {
       }
     }
 
-    if (key && this.scene.textures.exists(key)) {
-      return this.scene.add.image(0, 0, key)
+    if (key) {
+      const exists = this.scene.textures.exists(key)
+      if (!exists) console.warn('[PlatformManager] texture missing:', key, 'for node type:', node.eventType)
+      if (exists) return this.scene.add.image(0, 0, key)
     }
     return undefined
   }

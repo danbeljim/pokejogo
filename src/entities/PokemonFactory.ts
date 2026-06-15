@@ -1,4 +1,4 @@
-import { Pokemon } from './Pokemon'
+import { Pokemon, calcStat, calcHp } from './Pokemon'
 import { PokemonType } from '../data/Types'
 import { getMovesForType } from '../data/Moves'
 
@@ -123,13 +123,6 @@ const BASE_STATS: Record<number, [number, number, number, number]> = {
   142: [80, 105,  65, 130],
 }
 
-function calcStat(base: number, level: number): number {
-  return Math.max(1, Math.floor(base * level / 50) + 5)
-}
-
-function calcHp(base: number, level: number): number {
-  return Math.floor(base * level / 50) + level + 10
-}
 
 const STARTERS = POKEMON_LIST.slice(0, 4)
 const CAPTURABLE_POKEMON = POKEMON_LIST.filter(p => p.capturable !== false)
@@ -169,7 +162,11 @@ export function createWildPokemon(level: number, dexId?: number, enemyMoves: boo
     defense: calcStat(bs[2], level),
     speed: calcStat(bs[3], level),
     moves,
-    type: entry.type
+    type: entry.type,
+    baseHp:  bs[0],
+    baseAtk: bs[1],
+    baseDef: bs[2],
+    baseSpd: bs[3],
   })
 }
 

@@ -8,6 +8,14 @@ export interface LevelUpEvent {
   evolvedTo?: string
 }
 
+export function calcStat(base: number, level: number): number {
+  return Math.max(1, Math.floor(base * level / 50) + 5)
+}
+
+export function calcHp(base: number, level: number): number {
+  return Math.floor(base * level / 50) + level + 10
+}
+
 export interface PokemonData {
   id: number
   name: string
@@ -21,6 +29,10 @@ export interface PokemonData {
   type?: PokemonType
   heldItem?: string
   traits?: string[]
+  baseHp?: number
+  baseAtk?: number
+  baseDef?: number
+  baseSpd?: number
 }
 
 export class Pokemon implements PokemonData {
@@ -37,6 +49,10 @@ export class Pokemon implements PokemonData {
   heldItem?: string
   traits: string[] = []
   experience: number = 0
+  baseHp: number
+  baseAtk: number
+  baseDef: number
+  baseSpd: number
 
   constructor(data: PokemonData) {
     this.id = data.id
@@ -51,16 +67,25 @@ export class Pokemon implements PokemonData {
     this.type = data.type || 'normal'
     this.heldItem = data.heldItem
     this.traits = data.traits || []
+    // Reverse-engineer base stats from current stats if not provided
+    this.baseHp  = data.baseHp  ?? Math.max(1, Math.round((data.maxHp - data.level - 10) * 50 / data.level))
+    this.baseAtk = data.baseAtk ?? Math.max(1, Math.round((data.attack - 5) * 50 / data.level))
+    this.baseDef = data.baseDef ?? Math.max(1, Math.round((data.defense - 5) * 50 / data.level))
+    this.baseSpd = data.baseSpd ?? Math.max(1, Math.round((data.speed - 5) * 50 / data.level))
   }
 
   levelUp(): LevelUpEvent {
     if (this.level >= 70) return { learnedMoves: [] }
     this.level++
-    this.maxHp += 5
-    this.hp = Math.min(this.hp + 5, this.maxHp)
-    this.attack += 3
-    this.defense += 2
-    this.speed += 2
+
+    const prevHp = this.hp
+    const newMaxHp = calcHp(this.baseHp, this.level)
+    const hpGain = newMaxHp - this.maxHp
+    this.maxHp = newMaxHp
+    this.hp = Math.min(this.hp + hpGain, this.maxHp)
+    this.attack  = calcStat(this.baseAtk, this.level)
+    this.defense = calcStat(this.baseDef, this.level)
+    this.speed   = calcStat(this.baseSpd, this.level)
 
     const event: LevelUpEvent = { learnedMoves: [] }
 
@@ -81,12 +106,42 @@ export class Pokemon implements PokemonData {
       this.id = evo.toDexId
       this.name = evo.toName
       this.type = evo.toType
-      // Stat boost on evolve
-      this.maxHp += 10
-      this.hp = this.maxHp
-      this.attack += 5
-      this.defense += 4
-      this.speed += 3
+      // On evolution, update base stats to evolved form and recalculate
+      const EVO_BASE_STATS: Record<number, [number, number, number, number]> = {
+        2:   [60,  62,  63,  60],  // Ivysaur
+        3:   [80,  82,  83,  80],  // Venusaur
+        5:   [58,  64,  58,  80],  // Charmeleon
+        6:   [78,  84,  78, 100],  // Charizard
+        8:   [59,  63,  80,  58],  // Wartortle
+        9:   [79,  83, 100,  78],  // Blastoise
+        17:  [63,  60,  55,  71],  // Pidgeotto
+        18:  [83,  80,  75,  91],  // Pidgeot
+        20:  [55,  81,  60,  97],  // Raticate
+        22:  [65,  90,  65, 100],  // Fearow
+        26:  [60,  90,  55, 110],  // Raichu
+        42:  [75,  80,  70, 90],   // Golbat
+        55:  [80,  82,  78,  85],  // Golduck
+        61:  [65,  65,  65,  90],  // Poliwhirl
+        64:  [40,  35,  30, 105],  // Kadabra
+        67:  [80,  100, 70,  45],  // Machoke
+        75:  [55,  95, 115,  35],  // Graveler
+        78:  [65, 100,  70, 105],  // Rapidash
+        80:  [95,  75, 110,  30],  // Slowbro
+        93:  [45,  50,  45,  95],  // Haunter
+        94:  [60,  65,  60, 110],  // Gengar
+        130: [95, 125,  79,  81],  // Gyarados
+        134: [130,  65,  60,  65], // Vaporeon
+      }
+      const newBs = EVO_BASE_STATS[this.id]
+      if (newBs) {
+        this.baseHp = newBs[0]; this.baseAtk = newBs[1]
+        this.baseDef = newBs[2]; this.baseSpd = newBs[3]
+      }
+      this.maxHp   = calcHp(this.baseHp, this.level)
+      this.hp      = this.maxHp
+      this.attack  = calcStat(this.baseAtk, this.level)
+      this.defense = calcStat(this.baseDef, this.level)
+      this.speed   = calcStat(this.baseSpd, this.level)
     }
 
     return event

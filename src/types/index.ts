@@ -7,7 +7,12 @@ export enum PlatformEventType {
   POKEMON_CENTER = 'pokemon_center',
   RANDOM = 'random',
   MEMORIAL = 'memorial',
-  NARRATIVE = 'narrative'
+  NARRATIVE = 'narrative',
+  DOUBLE_BATTLE = 'double_battle',
+  BERRY_TREE = 'berry_tree',
+  DOJO = 'dojo',
+  PROFESSOR = 'professor',
+  PORTAL = 'portal'
 }
 
 export interface PlatformEvent {

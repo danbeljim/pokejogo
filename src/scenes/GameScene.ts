@@ -4,6 +4,9 @@ import LevelGenerator from '../managers/LevelGenerator'
 import PlatformManager from '../managers/PlatformManager'
 import EventManager from '../managers/EventManager'
 import EventPopup from '../ui/EventPopup'
+import { BerryTreeData } from './BerryTreeScene'
+import { DojoSceneData } from './DojoScene'
+import { ProfessorSceneData } from './ProfessorScene'
 import { createStarterByDexId, POKEMON_LIST, spriteKey, spriteUrl } from '../entities/PokemonFactory'
 import { Pokemon } from '../entities/Pokemon'
 import { preloadSprites, preloadItemSprites, preloadTrainerSprites, preloadGymLeaderSprites, preloadBadgeSprites } from '../utils/SpriteLoader'
@@ -750,6 +753,74 @@ export default class GameScene extends Phaser.Scene {
             }
           })
         }
+      })
+    } else if (result.requiresBerryTree) {
+      this.scene.pause()
+      const data: BerryTreeData = {
+        playerTeam: this.playerTeam,
+        playerBag: this.playerBag,
+        onComplete: () => {
+          this.eventOccurred = false
+          this.showToast('🍓 ¡Recompensa de Árbol de Bayas obtenida!')
+          this.updateHud()
+        }
+      }
+      this.scene.launch('BerryTreeScene', data)
+    } else if (result.requiresDojo) {
+      this.scene.pause()
+      const data: DojoSceneData = {
+        playerTeam: this.playerTeam,
+        onComplete: () => {
+          this.eventOccurred = false
+          this.showToast('🥋 ¡Entrenamiento completado! Stats mejorados.')
+          this.updateHud()
+        }
+      }
+      this.scene.launch('DojoScene', data)
+    } else if (result.requiresProfessor) {
+      this.scene.pause()
+      const data: ProfessorSceneData = {
+        playerTeam: this.playerTeam,
+        difficulty: currentMap.difficulty,
+        onComplete: (newTeam: Pokemon[]) => {
+          this.playerTeam = newTeam
+          this.eventOccurred = false
+          this.showToast('🔬 ¡El Profesor te ayudó!')
+          this.updateHud()
+        }
+      }
+      this.scene.launch('ProfessorScene', data)
+    } else if (result.requiresPortal && result.portalPokemon) {
+      const legendary = result.portalPokemon
+      this.showToast(`✨ ¡Portal! ${legendary.name} Nv.${legendary.level} aparece...`)
+      this.time.delayedCall(1000, () => {
+        this.scene.pause()
+        const syn = this.getActiveSynergy()
+        this.scene.launch('BattleScene', {
+          playerTeam: this.playerTeam,
+          enemyTeam: [legendary],
+          battleType: 'wild',
+          gymLeaderName: currentMap.gymLeaderName,
+          playerBag: this.playerBag,
+          synergyBonuses: syn ? { atk: syn.atkBonus, def: syn.defBonus, spd: syn.spdBonus } : undefined,
+          battleSpeed: this.battleSpeed,
+          onComplete: (won: boolean) => {
+            if (won) {
+              this.scene.pause()
+              this.scene.launch('CaptureScene', {
+                playerTeam: this.playerTeam,
+                options: [legendary],
+                onComplete: (caught?: Pokemon) => {
+                  this.eventOccurred = false
+                  if (caught) this.showToast(`✨ ¡${caught.name} legendario capturado!`)
+                  this.updateHud()
+                }
+              })
+            } else {
+              this.onBattleEnd(false, 'wild')
+            }
+          }
+        })
       })
     } else if (result.type === 'pokemon_center') {
       this.showToast('¡Centro Pokémon! Equipo curado al completo.')

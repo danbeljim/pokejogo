@@ -234,11 +234,16 @@ export default class LevelGenerator {
 
   private getRandomEvent(difficulty: number): PlatformEventType {
     const rand = Math.random()
-    if (rand < 0.30 + difficulty * 0.05) return PlatformEventType.TRAINER_BATTLE
-    if (rand < 0.60 + difficulty * 0.05) return PlatformEventType.WILD_POKEMON
-    if (rand < 0.75) return PlatformEventType.POKEMON_CAPTURE
-    if (rand < 0.88) return PlatformEventType.ITEM_PICKUP
-    return PlatformEventType.RANDOM
+    if (rand < 0.22 + difficulty * 0.04) return PlatformEventType.TRAINER_BATTLE
+    if (rand < 0.30 + difficulty * 0.03) return PlatformEventType.DOUBLE_BATTLE
+    if (rand < 0.52 + difficulty * 0.03) return PlatformEventType.WILD_POKEMON
+    if (rand < 0.63) return PlatformEventType.POKEMON_CAPTURE
+    if (rand < 0.74) return PlatformEventType.ITEM_PICKUP
+    if (rand < 0.81) return PlatformEventType.BERRY_TREE
+    if (rand < 0.87) return PlatformEventType.DOJO
+    if (rand < 0.92) return PlatformEventType.PROFESSOR
+    if (rand < 0.96) return PlatformEventType.RANDOM
+    return PlatformEventType.PORTAL
   }
 
   private generateEventData(eventType: PlatformEventType, difficulty: number, row: number, rows: number, playerMaxLevel: number, ghostOnly: boolean = false): any {

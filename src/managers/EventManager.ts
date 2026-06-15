@@ -1,8 +1,10 @@
 import { PlatformEventType } from '../types'
 import { MapNode } from './LevelGenerator'
 import { Pokemon } from '../entities/Pokemon'
-import { createWildPokemon, createGymLeaderTeam } from '../entities/PokemonFactory'
+import { createWildPokemon, createGymLeaderTeam, createTrainerTeam } from '../entities/PokemonFactory'
 import { assignRogueTraits } from '../data/RoguelikeData'
+
+const LEGENDARY_IDS = [144, 145, 146, 150, 151]
 
 export interface EventResult {
   type: PlatformEventType
@@ -16,6 +18,11 @@ export interface EventResult {
   requiresCapturePicker?: boolean
   captureOptions?: Pokemon[]
   requiresRandomPicker?: boolean
+  requiresBerryTree?: boolean
+  requiresDojo?: boolean
+  requiresProfessor?: boolean
+  requiresPortal?: boolean
+  portalPokemon?: Pokemon
 }
 
 export default class EventManager {
@@ -43,6 +50,16 @@ export default class EventManager {
         return this.handleMemorial(platform, playerTeam)
       case PlatformEventType.NARRATIVE:
         return this.handleNarrative()
+      case PlatformEventType.DOUBLE_BATTLE:
+        return this.prepareDoubleBattle(difficulty, trainerMax)
+      case PlatformEventType.BERRY_TREE:
+        return { type: PlatformEventType.BERRY_TREE, message: '¡Un Árbol de Bayas!', requiresBerryTree: true }
+      case PlatformEventType.DOJO:
+        return { type: PlatformEventType.DOJO, message: '¡Bienvenido al Dojo!', requiresDojo: true }
+      case PlatformEventType.PROFESSOR:
+        return { type: PlatformEventType.PROFESSOR, message: '¡El Profesor te espera!', requiresProfessor: true }
+      case PlatformEventType.PORTAL:
+        return this.preparePortalBattle(playerTeam)
       default:
         return { type: PlatformEventType.POKEMON_CAPTURE, message: 'Unknown' }
     }
@@ -154,6 +171,31 @@ export default class EventManager {
     ]
     const msg = EVENTS[Math.floor(Math.random() * EVENTS.length)]
     return { type: PlatformEventType.NARRATIVE, message: msg }
+  }
+
+  private prepareDoubleBattle(difficulty: number, trainerMax: number): EventResult {
+    const team: Pokemon[] = createTrainerTeam(Math.min(difficulty + 1, 5), trainerMax)
+    if (team.length < 2) team.push(createWildPokemon(trainerMax, undefined, true))
+    return {
+      type: PlatformEventType.DOUBLE_BATTLE,
+      message: '⚔️ ¡COMBATE DOBLE! Dos entrenadores te desafían.',
+      requiresBattle: true,
+      enemyTeam: team.slice(0, 2),
+      battleType: 'trainer'
+    }
+  }
+
+  private preparePortalBattle(playerTeam: Pokemon[]): EventResult {
+    const playerMax = Math.max(...playerTeam.map(p => p.level), 20)
+    const level = Math.max(35, playerMax + 5)
+    const dexId = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)]
+    const legendary = createWildPokemon(level, dexId, true)
+    return {
+      type: PlatformEventType.PORTAL,
+      message: `✨ ¡Un Pokémon Legendario aparece en el portal!`,
+      requiresPortal: true,
+      portalPokemon: legendary
+    }
   }
 
   applyBattleReward(playerTeam: Pokemon[], battleType: 'wild' | 'trainer' | 'boss'): string {

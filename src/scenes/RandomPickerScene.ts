@@ -14,23 +14,58 @@ export const RANDOM_METHODS: RandomMethod[] = [
   {
     id: 'random-excavar',
     name: 'Excavar',
-    description: 'Pokémon de tipo Roca o Tierra',
+    description: 'Pokémon Roca/Tierra',
     assetUrl: '/assets/random/Excavar_LGPE.gif',
     types: ['rock', 'ground']
   },
   {
     id: 'random-supercana',
     name: 'Supercaña',
-    description: 'Pokémon de tipo Agua',
+    description: 'Pokémon Agua',
     assetUrl: '/assets/random/Supercaña_DBPR.png',
     types: ['water']
   },
   {
     id: 'random-vuelo',
     name: 'Vuelo',
-    description: 'Pokémon de tipo Volador',
+    description: 'Pokémon Volador',
     assetUrl: '/assets/random/Vuelo_HGSS.gif',
     types: ['flying']
+  },
+  {
+    id: 'random-bosque',
+    name: 'Bosque 🌲',
+    description: 'Pokémon Planta/Bicho',
+    assetUrl: '/assets/random/Excavar_LGPE.gif',
+    types: ['grass', 'bug']
+  },
+  {
+    id: 'random-cueva',
+    name: 'Cueva Oscura 🕳️',
+    description: 'Pokémon Veneno/Fantasma',
+    assetUrl: '/assets/random/Vuelo_HGSS.gif',
+    types: ['poison', 'ghost']
+  },
+  {
+    id: 'random-volcan',
+    name: 'Volcán 🌋',
+    description: 'Pokémon Fuego/Roca',
+    assetUrl: '/assets/random/Excavar_LGPE.gif',
+    types: ['fire', 'rock']
+  },
+  {
+    id: 'random-pantano',
+    name: 'Pantano ☣️',
+    description: 'Pokémon Veneno/Agua',
+    assetUrl: '/assets/random/Supercaña_DBPR.png',
+    types: ['poison', 'water']
+  },
+  {
+    id: 'random-ruinas',
+    name: 'Ruinas 🏛️',
+    description: 'Pokémon Psíquico/Fantasma',
+    assetUrl: '/assets/random/Vuelo_HGSS.gif',
+    types: ['psychic', 'ghost']
   },
 ]
 

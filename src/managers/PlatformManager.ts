@@ -242,6 +242,11 @@ export default class PlatformManager {
       case PlatformEventType.RANDOM: return 0xAA44FF
       case PlatformEventType.MEMORIAL: return 0x9370DB
       case PlatformEventType.NARRATIVE: return 0x556B8F
+      case PlatformEventType.DOUBLE_BATTLE: return 0xFF2222
+      case PlatformEventType.BERRY_TREE: return 0xFF4499
+      case PlatformEventType.DOJO: return 0xE65C00
+      case PlatformEventType.PROFESSOR: return 0x00BCD4
+      case PlatformEventType.PORTAL: return 0x8B00FF
       default: return 0x808080
     }
   }
@@ -257,6 +262,11 @@ export default class PlatformManager {
       case PlatformEventType.RANDOM: return '?'
       case PlatformEventType.MEMORIAL: return '🙏'
       case PlatformEventType.NARRATIVE: return '📜'
+      case PlatformEventType.DOUBLE_BATTLE: return '⚔️'
+      case PlatformEventType.BERRY_TREE: return '🍓'
+      case PlatformEventType.DOJO: return '🥋'
+      case PlatformEventType.PROFESSOR: return '🔬'
+      case PlatformEventType.PORTAL: return '✨'
       default: return '?'
     }
   }
@@ -287,6 +297,16 @@ export default class PlatformManager {
         return ['MEMORIAL', 'Un lugar de\nrecuerdo y\nreflexion.']
       case PlatformEventType.NARRATIVE:
         return ['HISTORIA', 'Un evento\nnarrativo que\navanza la trama.']
+      case PlatformEventType.DOUBLE_BATTLE:
+        return ['COMBATE DOBLE', '⚔️ Dos entrenadores\nte desafian a la vez.\nMas XP al ganar.']
+      case PlatformEventType.BERRY_TREE:
+        return ['ARBOL DE BAYAS', '🍓 Curacion,\nbuff o bayas\nraras te esperan.']
+      case PlatformEventType.DOJO:
+        return ['DOJO', '🥋 Entrena duro.\nElige una mejora\npermanente de stats.']
+      case PlatformEventType.PROFESSOR:
+        return ['PROFESOR', '🔬 Aprende movimiento,\nevolucion instantanea\no cambio de Pokemon.']
+      case PlatformEventType.PORTAL:
+        return ['PORTAL EXTRAÑO', '✨ Una dimension\nextraña. Pokemon\nlegendario te aguarda.']
       default:
         return ['???']
     }

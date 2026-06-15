@@ -59,13 +59,11 @@ function applyPortraitCSS(vw: number, vh: number) {
   const k = S / P
   game.canvas.style.transformOrigin = 'center center'
   game.canvas.style.transform = `rotate(-90deg) scale(${k})`
-  game.scale.refresh()
 }
 
 function removeCSSTransform() {
   game.canvas.style.transform = ''
   game.canvas.style.transformOrigin = ''
-  game.scale.refresh()
 }
 
 function checkOrientation() {
@@ -105,11 +103,6 @@ game.events.once(Phaser.Core.Events.READY, () => {
 
     return orig(pointer, fakePageX, fakePageY, wasMove)
   }
-
-  // Reapply CSS after Phaser resizes canvas (e.g. window resize in portrait)
-  game.scale.on(Phaser.Scale.Events.RESIZE, () => {
-    if (isPortrait) applyPortraitCSS(window.innerWidth, window.innerHeight)
-  })
 
   window.addEventListener('resize', () => setTimeout(checkOrientation, 100))
   window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200))

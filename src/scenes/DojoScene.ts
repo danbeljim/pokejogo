@@ -30,10 +30,15 @@ export default class DojoScene extends Phaser.Scene {
   private buildOverlay(): HTMLDivElement {
     const wrap = document.createElement('div')
     wrap.style.cssText = `
-      position:fixed; inset:0; background:rgba(20,10,0,0.97);
+      position:fixed; inset:0;
+      background:url('/assets/locations/dojo.png') center/cover no-repeat;
       display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
       z-index:9999; font-family:Arial,sans-serif; overflow-y:auto; padding:20px 0 24px;
     `
+    // Dark overlay so text stays readable
+    const dimmer = document.createElement('div')
+    dimmer.style.cssText = 'position:fixed; inset:0; background:rgba(10,5,0,0.72); z-index:-1; pointer-events:none;'
+    wrap.appendChild(dimmer)
     this.renderStep1(wrap)
     return wrap
   }

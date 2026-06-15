@@ -189,6 +189,10 @@ export default class PlatformManager {
       case PlatformEventType.RANDOM:
         key = undefined
         break
+      case PlatformEventType.DOJO:
+        key = 'makuhita-icon'
+        scale = 1.2
+        break
       case PlatformEventType.BOSS: {
         const gkey = gymLeaderSpriteKey(this.bossGymLeaderName)
         if (this.scene.textures.exists(gkey)) {

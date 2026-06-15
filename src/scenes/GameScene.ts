@@ -88,6 +88,8 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('baya-icon', '/assets/random/baya.png')
     this.load.image('gemelas-icon', '/assets/random/gemelas.png')
     this.load.image('dobles-bg', '/assets/random/dobles.jpg')
+    this.load.image('legendarios-icon', '/assets/random/legendarios.jpg')
+    this.load.image('celeste-bg', '/assets/random/celeste.png')
     this.load.image('tall-grass', '/assets/trainers/grass.png')
     this.load.image('tall-grass-tile', '/assets/trainers/Zona_de_hierba_alta_XY.png')
     this.load.image('bici', '/assets/trainers/bici.png')
@@ -812,6 +814,7 @@ export default class GameScene extends Phaser.Scene {
           playerBag: this.playerBag,
           synergyBonuses: syn ? { atk: syn.atkBonus, def: syn.defBonus, spd: syn.spdBonus } : undefined,
           battleSpeed: this.battleSpeed,
+          backgroundKey: 'celeste-bg',
           onComplete: (won: boolean) => {
             if (won) {
               this.scene.pause()

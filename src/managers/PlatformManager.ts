@@ -33,6 +33,7 @@ export default class PlatformManager {
       ['cientifico-icon', '/assets/random/cientifico.png'],
       ['baya-icon',       '/assets/random/baya.png'],
       ['gemelas-icon',    '/assets/random/gemelas.png'],
+      ['legendarios-icon','/assets/random/legendarios.jpg'],
     ]
     const missing = NODE_ASSETS.filter(([k]) => !this.scene.textures.exists(k))
     if (missing.length > 0) {
@@ -228,6 +229,10 @@ export default class PlatformManager {
       case PlatformEventType.BERRY_TREE:
         key = 'baya-icon'
         scale = 1.4
+        break
+      case PlatformEventType.PORTAL:
+        key = 'legendarios-icon'
+        scale = 1.2
         break
       case PlatformEventType.BOSS: {
         const gkey = gymLeaderSpriteKey(this.bossGymLeaderName)

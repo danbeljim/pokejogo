@@ -30,6 +30,9 @@ const config: Phaser.Types.Core.GameConfig = {
     powerPreference: 'high-performance'
   },
   fps: { target: 60, forceSetTimeOut: false },
+  input: {
+    touch: { capture: false }
+  },
   physics: {
     default: 'arcade',
     arcade: {

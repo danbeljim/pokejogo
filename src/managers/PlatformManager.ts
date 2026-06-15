@@ -40,12 +40,12 @@ export default class PlatformManager {
         console.log('[PlatformManager] loading:', k, url)
         this.scene.load.image(k, url)
       })
+      this.scene.load.on('loaderror', (f: Phaser.Loader.File) => {
+        console.error('[PlatformManager] load error:', f.key, f.url)
+      })
       this.scene.load.once('complete', () => {
         console.log('[PlatformManager] load complete, textures:', missing.map(([k]) => k + ':' + this.scene.textures.exists(k)).join(', '))
-        this.draw()
-      })
-      this.scene.load.once('loaderror', (f: Phaser.Loader.File) => {
-        console.error('[PlatformManager] load error:', f.key, f.url)
+        this.scene.load.off('loaderror')
         this.draw()
       })
       this.scene.load.start()

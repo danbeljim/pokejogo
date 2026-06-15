@@ -18,9 +18,33 @@
       overflow: hidden;
     }
 
+    #rotate-msg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 22px;
+      text-align: center;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 9999;
+    }
+
+    @media (max-width: 900px) and (orientation: portrait) {
+      #rotate-msg { display: flex; }
+    }
   </style>
 </head>
 <body>
+  <div id="rotate-msg">
+    <span style="font-size:48px">🔄</span>
+    <span>Rota el dispositivo</span>
+    <span style="font-size:14px;color:#aaa">El juego requiere modo horizontal</span>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

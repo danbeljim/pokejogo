@@ -10,12 +10,11 @@ export interface LevelUpEvent {
 }
 
 export function calcStat(base: number, level: number): number {
-  const raw = Math.round(base * (1 + 0.04 * Math.pow(level, 1.05)))
-  return Math.max(1, raw <= 150 ? raw : Math.round(150 + (raw - 150) * 0.5))
+  return Math.max(1, Math.round(base * (1 + 0.025 * (level - 1))))
 }
 
 export function calcHp(base: number, level: number): number {
-  return Math.max(1, Math.round(base * (1 + 0.05 * Math.pow(level, 1.05)) + level * 0.5))
+  return Math.max(1, Math.round(base * (1 + 0.025 * (level - 1)) + level))
 }
 
 export interface PokemonData {

@@ -1,6 +1,7 @@
 import { Pokemon, calcStat, calcHp } from './Pokemon'
 import { PokemonType } from '../data/Types'
 import { getMovesForType } from '../data/Moves'
+import { getTierMod, getEvoMod, applyBossScale } from '../data/StatSystem'
 
 export const POKEMON_LIST: { name: string; dexId: number; type: PokemonType; moves: string[]; capturable?: false }[] = [
   { name: 'Bulbasaur', dexId: 1, type: 'grass', moves: ['Tackle', 'Vine Whip', 'Razor Leaf'] },
@@ -42,6 +43,46 @@ export const POKEMON_LIST: { name: string; dexId: number; type: PokemonType; mov
   { name: 'Doduo',     dexId: 84,  type: 'flying',  moves: ['Peck', 'Fury Attack'] },
   { name: 'Farfetchd', dexId: 83,  type: 'flying',  moves: ['Peck', 'Cut', 'Wing Attack'] },
   { name: 'Aerodactyl',dexId: 142, type: 'flying',  moves: ['Wing Attack', 'Rock Throw', 'Bite'] },
+  { name: 'Snorlax',   dexId: 143, type: 'normal',  moves: ['Tackle', 'Headbutt', 'Bite'] },
+  { name: 'Dratini',   dexId: 147, type: 'dragon',  moves: ['Tackle', 'Headbutt', 'Bite'] },
+  // Kanto wild pool extras
+  { name: 'Caterpie',  dexId: 10,  type: 'bug',     moves: ['Tackle'] },
+  { name: 'Metapod',   dexId: 11,  type: 'bug',     moves: ['Tackle'] },
+  { name: 'Weedle',    dexId: 13,  type: 'poison',  moves: ['Tackle', 'Poison Sting'] },
+  { name: 'Kakuna',    dexId: 14,  type: 'poison',  moves: ['Tackle', 'Poison Sting'] },
+  { name: 'Pidgeotto', dexId: 17,  type: 'flying',  moves: ['Peck', 'Wing Attack'] },
+  { name: 'Fearow',    dexId: 22,  type: 'flying',  moves: ['Peck', 'Wing Attack'] },
+  { name: 'Ekans',     dexId: 23,  type: 'poison',  moves: ['Tackle', 'Bite', 'Poison Sting'] },
+  { name: 'Sandslash', dexId: 28,  type: 'ground',  moves: ['Scratch', 'Headbutt'] },
+  { name: 'NidoranF',  dexId: 29,  type: 'poison',  moves: ['Tackle', 'Poison Sting'] },
+  { name: 'Nidorina',  dexId: 30,  type: 'poison',  moves: ['Tackle', 'Bite', 'Poison Sting'] },
+  { name: 'NidoranM',  dexId: 32,  type: 'poison',  moves: ['Tackle', 'Poison Sting'] },
+  { name: 'Nidorino',  dexId: 33,  type: 'poison',  moves: ['Tackle', 'Bite', 'Poison Sting'] },
+  { name: 'Clefairy',  dexId: 35,  type: 'normal',  moves: ['Tackle', 'Quick Attack'] },
+  { name: 'Vulpix',    dexId: 37,  type: 'fire',    moves: ['Ember', 'Bite'] },
+  { name: 'Jigglypuff',dexId: 39,  type: 'normal',  moves: ['Tackle', 'Quick Attack'] },
+  { name: 'Golbat',    dexId: 42,  type: 'poison',  moves: ['Bite', 'Wing Attack', 'Poison Sting'] },
+  { name: 'Oddish',    dexId: 43,  type: 'grass',   moves: ['Tackle', 'Vine Whip', 'Razor Leaf'] },
+  { name: 'Paras',     dexId: 46,  type: 'bug',     moves: ['Tackle', 'Quick Attack'] },
+  { name: 'Parasect',  dexId: 47,  type: 'bug',     moves: ['Tackle', 'Quick Attack', 'Headbutt'] },
+  { name: 'Venonat',   dexId: 48,  type: 'poison',  moves: ['Tackle', 'Poison Sting', 'Confusion'] },
+  { name: 'Meowth',    dexId: 52,  type: 'normal',  moves: ['Scratch', 'Bite', 'Quick Attack'] },
+  { name: 'Mankey',    dexId: 56,  type: 'fighting',moves: ['Scratch', 'Karate Chop'] },
+  { name: 'Machoke',   dexId: 67,  type: 'fighting',moves: ['Karate Chop', 'Headbutt'] },
+  { name: 'Bellsprout',dexId: 69,  type: 'grass',   moves: ['Vine Whip', 'Razor Leaf'] },
+  { name: 'Tentacruel',dexId: 73,  type: 'water',   moves: ['Poison Sting', 'Water Gun', 'Hydro Pump'] },
+  { name: 'Graveler',  dexId: 75,  type: 'rock',    moves: ['Tackle', 'Rock Throw', 'Headbutt'] },
+  { name: 'Magnemite', dexId: 81,  type: 'electric',moves: ['Tackle', 'Thunder Shock'] },
+  { name: 'Grimer',    dexId: 88,  type: 'poison',  moves: ['Tackle', 'Poison Sting'] },
+  { name: 'Shellder',  dexId: 90,  type: 'water',   moves: ['Tackle', 'Water Gun'] },
+  { name: 'Drowzee',   dexId: 96,  type: 'psychic', moves: ['Tackle', 'Confusion'] },
+  { name: 'Electrode', dexId: 101, type: 'electric',moves: ['Thunder Shock', 'Thunderbolt'] },
+  { name: 'Exeggcute', dexId: 102, type: 'grass',   moves: ['Tackle', 'Razor Leaf', 'Confusion'] },
+  { name: 'Kangaskhan',dexId: 115, type: 'normal',  moves: ['Tackle', 'Headbutt', 'Bite'] },
+  { name: 'Scyther',   dexId: 123, type: 'flying',  moves: ['Wing Attack', 'Bite'] },
+  { name: 'Magmar',    dexId: 126, type: 'fire',    moves: ['Ember', 'Flamethrower'] },
+  { name: 'Pinsir',    dexId: 127, type: 'bug',     moves: ['Bite', 'Headbutt'] },
+  { name: 'Tauros',    dexId: 128, type: 'normal',  moves: ['Tackle', 'Headbutt', 'Bite'] },
   // Gym leader canonical mons
   { name: 'Staryu',     dexId: 120, type: 'water',   moves: ['Water Gun', 'Tackle', 'Rapid Spin'] },
   { name: 'Starmie',    dexId: 121, type: 'water',   moves: ['Water Gun', 'Psychic', 'Hydro Pump'],    capturable: false },
@@ -121,6 +162,46 @@ const BASE_STATS: Record<number, [number, number, number, number]> = {
   138: [35,  40, 100,  35],
   140: [30,  80,  90,  55],
   142: [80, 105,  65, 130],
+  143: [160, 110,  65,  30],
+  147: [41,  64,  45,  50],
+  // Kanto wild extras
+  10:  [45,  30,  35,  45],
+  11:  [50,  20,  55,  30],
+  13:  [40,  35,  30,  50],
+  14:  [45,  25,  50,  35],
+  17:  [63,  60,  55,  71],
+  22:  [65,  90,  65, 100],
+  23:  [35,  60,  44,  55],
+  28:  [75, 100, 110,  65],
+  29:  [55,  47,  52,  41],
+  30:  [70,  62,  67,  56],
+  32:  [46,  57,  40,  50],
+  33:  [61,  72,  57,  65],
+  35:  [70,  45,  48,  35],
+  37:  [38,  41,  40,  65],
+  39: [115,  45,  20,  20],
+  42:  [75,  80,  70,  90],
+  43:  [45,  50,  55,  30],
+  46:  [35,  70,  55,  25],
+  47:  [60,  95,  80,  30],
+  48:  [60,  55,  50,  45],
+  52:  [40,  45,  35,  90],
+  56:  [40,  80,  35,  70],
+  67:  [80, 100,  70,  45],
+  69:  [50,  75,  35,  40],
+  73:  [80,  70,  65, 100],
+  75:  [55,  95, 115,  35],
+  81:  [25,  35,  70,  45],
+  88:  [80,  80,  50,  25],
+  90:  [30,  65, 100,  40],
+  96:  [60,  48,  45,  42],
+  101: [60,  50,  70, 140],
+  102: [60,  40,  80,  40],
+  115: [105, 95,  80,  90],
+  123: [70, 110,  80, 105],
+  126: [65,  95,  57,  93],
+  127: [65, 125, 100,  85],
+  128: [75, 100,  95, 110],
 }
 
 
@@ -148,7 +229,12 @@ export function createWildPokemon(level: number, dexId?: number, enemyMoves: boo
     ? (POKEMON_LIST.find(p => p.dexId === dexId) || CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)])
     : CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)]
   const bs = BASE_STATS[entry.dexId] || [45, 50, 45, 45]
-  const maxHp = calcHp(bs[0], level)
+  const combinedMod = getTierMod(entry.dexId) * getEvoMod(entry.dexId)
+  const effHp  = Math.round(bs[0] * combinedMod)
+  const effAtk = Math.round(bs[1] * combinedMod)
+  const effDef = Math.round(bs[2] * combinedMod)
+  const effSpd = Math.round(bs[3] * combinedMod)
+  const maxHp = calcHp(effHp, level)
   const moves = enemyMoves
     ? getMovesForType(entry.type, level)
     : pickMoves(entry.moves, level)
@@ -158,15 +244,15 @@ export function createWildPokemon(level: number, dexId?: number, enemyMoves: boo
     level,
     hp: maxHp,
     maxHp,
-    attack: calcStat(bs[1], level),
-    defense: calcStat(bs[2], level),
-    speed: calcStat(bs[3], level),
+    attack:  calcStat(effAtk, level),
+    defense: calcStat(effDef, level),
+    speed:   calcStat(effSpd, level),
     moves,
     type: entry.type,
-    baseHp:  bs[0],
-    baseAtk: bs[1],
-    baseDef: bs[2],
-    baseSpd: bs[3],
+    baseHp:  effHp,
+    baseAtk: effAtk,
+    baseDef: effDef,
+    baseSpd: effSpd,
   })
 }
 
@@ -198,8 +284,7 @@ export function createGymLeaderTeam(gymName: string): Pokemon[] {
   if (!roster) return []
   return roster.map(({ dexId, level }) => {
     const p = createWildPokemon(level, dexId, true)
-    p.attack += 5
-    p.defense += 5
+    applyBossScale(p)
     return p
   })
 }

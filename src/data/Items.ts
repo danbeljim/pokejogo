@@ -1,6 +1,6 @@
 import { Pokemon } from '../entities/Pokemon'
 
-export type ItemCategory = 'vitamin' | 'relic'
+export type ItemCategory = 'vitamin' | 'relic' | 'berry'
 export type RelicEffect = 'leftovers' | 'life_orb' | 'focus_sash' | 'choice_band'
 
 export interface Item {
@@ -13,6 +13,13 @@ export interface Item {
   // Relics only
   relicEffect?: RelicEffect
   bonus?: { hp?: number; attack?: number; defense?: number; speed?: number }
+}
+
+export const FRAMBU_BERRY: Item = {
+  id: 'frambu-berry',
+  name: 'Baya Frambu',
+  description: 'Cura 50% PS a todo el equipo',
+  category: 'berry',
 }
 
 export const VITAMINS: Item[] = [

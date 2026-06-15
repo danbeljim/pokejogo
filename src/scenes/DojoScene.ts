@@ -7,10 +7,10 @@ export interface DojoSceneData {
 }
 
 const BOOSTS = [
-  { label: '+15 Ataque', apply: (p: Pokemon) => { p.attack += 15 } },
-  { label: '+15 Defensa', apply: (p: Pokemon) => { p.defense += 15 } },
-  { label: '+15 Velocidad', apply: (p: Pokemon) => { p.speed += 15 } },
-  { label: '+30 PS máx', apply: (p: Pokemon) => { p.maxHp += 30; p.hp = Math.min(p.hp + 30, p.maxHp) } },
+  { label: '+5 Ataque', apply: (p: Pokemon) => { p.attack += 5 } },
+  { label: '+5 Defensa', apply: (p: Pokemon) => { p.defense += 5 } },
+  { label: '+5 Velocidad', apply: (p: Pokemon) => { p.speed += 5 } },
+  { label: '+10 PS máx', apply: (p: Pokemon) => { p.maxHp += 10; p.hp = Math.min(p.hp + 10, p.maxHp) } },
 ]
 
 export default class DojoScene extends Phaser.Scene {

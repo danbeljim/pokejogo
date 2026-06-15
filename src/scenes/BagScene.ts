@@ -69,8 +69,8 @@ export default class BagScene extends Phaser.Scene {
         this.root!.add(icon)
       }
 
-      const tag = item.category === 'vitamin' ? '[V]' : '[R]'
-      const tagColor = item.category === 'vitamin' ? '#88ff88' : '#ffaa44'
+      const tag = item.category === 'vitamin' ? '[V]' : item.category === 'berry' ? '[B]' : '[R]'
+      const tagColor = item.category === 'vitamin' ? '#88ff88' : item.category === 'berry' ? '#ff88aa' : '#ffaa44'
       const t = this.add.text(56, y + 4, `${tag} ${item.name}`, { font: 'bold 12px Arial', color: tagColor })
       const d = this.add.text(56, y + 20, item.description, { font: '11px Arial', color: '#cccccc' })
       this.root!.add(t)
@@ -133,7 +133,17 @@ export default class BagScene extends Phaser.Scene {
       }
     })
 
-    if (this.selectedItem) {
+    if (this.selectedItem?.category === 'berry') {
+      const useBtn = this.add.text(400, 520, `🍓 Usar "${this.selectedItem.name}" en todo el equipo`, {
+        font: 'bold 14px Arial', color: '#88ff88',
+        backgroundColor: '#1a3020', padding: { x: 16, y: 8 }
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+      useBtn.on('pointerdown', () => this.useBerry())
+      this.root!.add(useBtn)
+      this.root.add(this.add.text(400, 560, `Seleccionado: ${this.selectedItem.name}`, {
+        font: 'bold 14px Arial', color: '#FFD700'
+      }).setOrigin(0.5))
+    } else if (this.selectedItem) {
       this.root.add(this.add.text(400, 560, `Seleccionado: ${this.selectedItem.name}`, {
         font: 'bold 14px Arial', color: '#FFD700'
       }).setOrigin(0.5))
@@ -142,6 +152,15 @@ export default class BagScene extends Phaser.Scene {
         font: '12px Arial', color: '#aaaaaa'
       }).setOrigin(0.5))
     }
+  }
+
+  private useBerry() {
+    if (!this.selectedItem || this.selectedIdx === undefined) return
+    this.payload.playerTeam.forEach(p => p.heal(Math.floor(p.maxHp * 0.5)))
+    this.payload.playerBag.splice(this.selectedIdx, 1)
+    this.selectedItem = undefined
+    this.selectedIdx = undefined
+    this.render()
   }
 
   private equip(p: Pokemon) {

@@ -120,7 +120,9 @@ export default class RandomPickerScene extends Phaser.Scene {
     const descSize = isMobile ? '9px' : '14px'
     const padding = isMobile ? '10px 6px' : '24px'
 
-    RANDOM_METHODS.forEach(method => {
+    const shown = [...RANDOM_METHODS].sort(() => Math.random() - 0.5).slice(0, 3)
+
+    shown.forEach(method => {
       const card = document.createElement('div')
       card.style.cssText = `
         background:#1a0a2e; border:2px solid #AA44FF; border-radius:12px;

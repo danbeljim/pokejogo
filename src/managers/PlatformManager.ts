@@ -139,7 +139,8 @@ export default class PlatformManager {
     // Sprite inside circle with mask
     const iconSprite = this.makeNodeIcon(node)
     if (iconSprite) {
-      const spriteSize = radius * 2 - 6
+      const isStart = this.map && node.id === this.map.startNodeId
+      const spriteSize = isStart ? radius * 3.2 : radius * 2 - 6
       iconSprite.setDisplaySize(spriteSize, spriteSize)
       if (visited) iconSprite.setAlpha(0.5)
       container.add(iconSprite)
@@ -188,10 +189,15 @@ export default class PlatformManager {
     let key: string | undefined
     let scale = 1.5
 
+    // Start node gets home icon
+    if (this.map && node.id === this.map.startNodeId) {
+      key = 'home-icon'
+      scale = 1.5
+    }
+
     switch (node.eventType) {
       case PlatformEventType.POKEMON_CAPTURE:
-        key = itemSpriteKey('pokeball')
-        scale = 1.8
+        if (!key) { key = itemSpriteKey('pokeball'); scale = 1.8 }
         break
       case PlatformEventType.ITEM_PICKUP:
         key = itemSpriteKey('potion')
@@ -331,6 +337,8 @@ export default class PlatformManager {
         return [`LIDER ${this.bossGymLeaderName.toUpperCase()}`, ...lines]
       }
       case PlatformEventType.POKEMON_CAPTURE:
+        if (this.map && node.id === this.map.startNodeId)
+          return ['INICIO', '¡Aquí comienza\ntu aventura!']
         return ['CAPTURA', 'Lanza una Poke Ball\ny atrapa un Pokemon\nsalvaje.']
       case PlatformEventType.WILD_POKEMON:
         return ['POKEMON SALVAJE', 'Aparece un Pokemon\nsalvaje. Combate\no huye.']

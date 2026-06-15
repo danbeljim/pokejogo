@@ -36,11 +36,14 @@ export default class GameScene extends Phaser.Scene {
   private roguelikeMode: boolean = false
   private trainerClass: string | null = null
   private battleSpeed: 1 | 2 = 1
+  private teamPanelCollapsed: boolean = false
+  private teamToggleBtn?: Phaser.GameObjects.Container
 
-  private readonly SLOT_W = 150
-  private readonly SLOT_H = 140
-  private readonly SLOT_X0 = 12
-  private readonly SLOT_Y0 = 80
+  private get isMobile() { return this.scale.width < 1000 }
+  private get SLOT_W() { return this.isMobile ? 90 : 150 }
+  private get SLOT_H() { return this.isMobile ? 82 : 140 }
+  private get SLOT_X0() { return 8 }
+  private get SLOT_Y0() { return this.isMobile ? 50 : 80 }
 
   constructor() {
     super('GameScene')
@@ -394,11 +397,12 @@ export default class GameScene extends Phaser.Scene {
     g.setDepth(0)
 
     // Title overlay
-    this.add.text(w / 2, 60, `${currentMap.routeName}  ·  ${currentMap.themeName}`, {
-      font: 'italic bold 32px Arial',
+    const titleFontSize = this.scale.width < 1000 ? 16 : 32
+    this.add.text(w / 2, this.scale.width < 1000 ? 30 : 60, `${currentMap.routeName}  ·  ${currentMap.themeName}`, {
+      font: `italic bold ${titleFontSize}px Arial`,
       color: currentMap.accentColor,
       stroke: '#000',
-      strokeThickness: 6
+      strokeThickness: this.scale.width < 1000 ? 3 : 6
     }).setOrigin(0.5).setDepth(0).setAlpha(0.7)
   }
 
@@ -434,25 +438,26 @@ export default class GameScene extends Phaser.Scene {
     if (this.synergyText) { this.synergyText.destroy(); this.synergyText = undefined }
     const currentMap = this.mapManager.getCurrentMap()
 
-    this.hudText = this.add.text(this.scale.width - 20, 20,
-      `Mapa ${currentMap.id}: ${currentMap.name}\n` +
-      `${currentMap.routeName} → ${currentMap.gymLeaderName}\n` +
-      `Medallas: ${this.mapManager.getMedalCount()}/8`, {
-      font: '20px Arial',
+    const hudFontSize = this.isMobile ? 11 : 20
+    const hudText = this.isMobile
+      ? `${currentMap.name} · ${this.mapManager.getMedalCount()}/8🏅`
+      : `Mapa ${currentMap.id}: ${currentMap.name}\n${currentMap.routeName} → ${currentMap.gymLeaderName}\nMedallas: ${this.mapManager.getMedalCount()}/8`
+    this.hudText = this.add.text(this.scale.width - 10, 6, hudText, {
+      font: `${hudFontSize}px Arial`,
       color: '#ffffff',
       backgroundColor: '#000000',
-      padding: { x: 12, y: 8 },
+      padding: { x: this.isMobile ? 6 : 12, y: this.isMobile ? 4 : 8 },
       align: 'right'
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(100)
 
     // Draw collected badge sprites
     const leaders = Object.keys(BADGE_SPRITES)
     const collected = new Set(this.mapManager.collectedMedals.map((m: any) => m.gymLeaderName))
-    const badgeSize = 28
-    const gap = 4
+    const badgeSize = this.isMobile ? 16 : 28
+    const gap = this.isMobile ? 2 : 4
     const totalW = leaders.length * (badgeSize + gap) - gap
-    const bx = this.scale.width - 20 - totalW
-    const by = 110
+    const bx = this.scale.width - 10 - totalW
+    const by = this.isMobile ? 32 : 110
     this.badgeContainer = this.add.container(0, 0).setDepth(100).setScrollFactor(0)
     leaders.forEach((name, i) => {
       const key = badgeSpriteKey(name)
@@ -487,7 +492,33 @@ export default class GameScene extends Phaser.Scene {
       }).setOrigin(1, 0).setScrollFactor(0).setDepth(100)
     }
 
+    this.drawTeamToggle()
     this.drawTeamPanel()
+  }
+
+  private drawTeamToggle() {
+    if (this.teamToggleBtn) this.teamToggleBtn.destroy()
+    if (!this.isMobile) return
+
+    const x0 = this.SLOT_X0
+    const size = 36
+    const btn = this.add.container(x0 + size / 2, 10).setDepth(200).setScrollFactor(0)
+    const bg = this.add.graphics()
+    bg.fillStyle(0x000000, 0.75)
+    bg.fillRoundedRect(-size / 2, 0, size, size, 6)
+    bg.lineStyle(1, 0xffd700, 1)
+    bg.strokeRoundedRect(-size / 2, 0, size, size, 6)
+    btn.add(bg)
+    const label = this.add.text(0, size / 2, this.teamPanelCollapsed ? '▶' : '◀', {
+      font: 'bold 14px Arial', color: '#ffffff'
+    }).setOrigin(0.5)
+    btn.add(label)
+    btn.setSize(size, size).setInteractive({ useHandCursor: true })
+    btn.on('pointerdown', () => {
+      this.teamPanelCollapsed = !this.teamPanelCollapsed
+      this.updateHud()
+    })
+    this.teamToggleBtn = btn
   }
 
   private drawTeamPanel() {
@@ -497,13 +528,14 @@ export default class GameScene extends Phaser.Scene {
     this.statsTooltip = undefined
     if (this.teamPanel) this.teamPanel.destroy()
 
+    if (this.isMobile && this.teamPanelCollapsed) return
+
     const slots = 6
     const slotH = this.SLOT_H
     const slotW = this.SLOT_W
     const x0 = this.SLOT_X0
-    const y0 = this.SLOT_Y0
+    const y0 = this.isMobile ? 50 : this.SLOT_Y0
     const container = this.add.container(0, 0).setDepth(100).setScrollFactor(0)
-
 
     for (let i = 0; i < slots; i++) {
       const y = y0 + i * slotH
@@ -522,20 +554,24 @@ export default class GameScene extends Phaser.Scene {
         container.add(empty)
       } else {
         const sKey = spriteKey(p.id, false)
+        const spriteSize = this.isMobile ? 42 : 68
+        const spriteOffX = this.isMobile ? 22 : 36
+        const spriteOffY = this.isMobile ? 34 : 54
         if (this.textures.exists(sKey)) {
-          const img = this.add.image(x0 + 36, y + 54, sKey).setDisplaySize(68, 68)
+          const img = this.add.image(x0 + spriteOffX, y + spriteOffY, sKey).setDisplaySize(spriteSize, spriteSize)
           container.add(img)
         }
 
-        const info = this.add.text(x0 + 76, y + 12, `${p.name}\nNv.${p.level}`, {
-          font: '12px Arial', color: '#ffffff'
+        const infoX = this.isMobile ? x0 + 48 : x0 + 76
+        const info = this.add.text(infoX, y + 8, `${p.name}\nNv.${p.level}`, {
+          font: `${this.isMobile ? 9 : 12}px Arial`, color: '#ffffff'
         })
         container.add(info)
 
         if (p.heldItem) {
           const iKey = itemSpriteKey(p.heldItem)
           if (this.textures.exists(iKey)) {
-            const itemImg = this.add.image(x0 + slotW - 14, y + 14, iKey).setDisplaySize(22, 22)
+            const itemImg = this.add.image(x0 + slotW - 10, y + 10, iKey).setDisplaySize(18, 18)
             container.add(itemImg)
           }
         }
@@ -543,13 +579,13 @@ export default class GameScene extends Phaser.Scene {
         const hpRatio = Math.max(0, p.hp / p.maxHp)
         const hpBar = this.add.graphics()
         const barX = x0 + 5
-        const barY = y + slotH - 18
+        const barY = y + slotH - 12
         const barW = slotW - 10
         hpBar.fillStyle(0x222222, 1)
-        hpBar.fillRect(barX, barY, barW, 8)
+        hpBar.fillRect(barX, barY, barW, 6)
         const hpColor = hpRatio > 0.5 ? 0x4CAF50 : hpRatio > 0.2 ? 0xFFC107 : 0xF44336
         hpBar.fillStyle(hpColor, 1)
-        hpBar.fillRect(barX, barY, barW * hpRatio, 8)
+        hpBar.fillRect(barX, barY, barW * hpRatio, 6)
         container.add(hpBar)
       }
 

@@ -1,6 +1,7 @@
 import { PlatformEventType } from '../types'
 import { POKEMON_LIST, createTrainerTeam, createWildPokemon } from '../entities/PokemonFactory'
 import { Pokemon } from '../entities/Pokemon'
+import { GAME_W, GAME_H } from '../main'
 
 export interface MapNode {
   id: number
@@ -34,10 +35,10 @@ const TOWER_FLOOR_POOLS: PlatformEventType[][] = [
 export default class LevelGenerator {
   generateTower(playerMaxLevel: number): GameMap {
     const nodes: MapNode[] = []
-    const worldWidth = 1600
+    const worldWidth = GAME_W
     const floors = TOWER_FLOOR_POOLS.length
-    const minY = 170
-    const maxY = 870
+    const minY = Math.round(GAME_H * 0.17)
+    const maxY = Math.round(GAME_H * 0.87)
     const rowSpacing = (maxY - minY) / (floors - 1)
     let nextId = 0
     const rowNodes: number[][] = []
@@ -49,8 +50,9 @@ export default class LevelGenerator {
       const cols = nodesPerFloor[f]
       const y = maxY - rowSpacing * f
       const rowSlots: number[] = []
-      const colWidth = cols === 1 ? 0 : 400 / (cols - 1)
-      const startX = cols === 1 ? worldWidth / 2 : worldWidth / 2 - 200
+      const spread = Math.round(worldWidth * 0.25)
+      const colWidth = cols === 1 ? 0 : spread * 2 / (cols - 1)
+      const startX = cols === 1 ? worldWidth / 2 : worldWidth / 2 - spread
 
       for (let c = 0; c < cols; c++) {
         const x = cols === 1 ? startX : startX + colWidth * c
@@ -123,10 +125,10 @@ export default class LevelGenerator {
 
   generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5, ghostOnly: boolean = false): GameMap {
     const nodes: MapNode[] = []
-    const worldWidth = 1600
+    const worldWidth = GAME_W
     const rows = 9
-    const minY = 170   // below HUD
-    const maxY = 870   // above bottom buttons
+    const minY = Math.round(GAME_H * 0.17)
+    const maxY = Math.round(GAME_H * 0.87)
     const rowSpacing = (maxY - minY) / (rows - 1)
 
     let nextId = 0
@@ -142,11 +144,12 @@ export default class LevelGenerator {
       // Center the row based on number of columns
       let colWidth = 0
       let startX = 0
+      const spread = Math.round(worldWidth * 0.3125)
       if (cols === 1) {
         startX = worldWidth / 2
       } else {
-        colWidth = 500 / (cols - 1)
-        startX = worldWidth / 2 - 250
+        colWidth = spread * 2 / (cols - 1)
+        startX = worldWidth / 2 - spread
       }
 
       for (let c = 0; c < cols; c++) {

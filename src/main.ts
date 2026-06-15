@@ -9,16 +9,20 @@ import TeamOrderScene from './scenes/TeamOrderScene'
 import CaptureScene from './scenes/CaptureScene'
 import RandomPickerScene from './scenes/RandomPickerScene'
 
+const isMobile = window.innerWidth < 1024 || window.innerHeight < 600
+export const GAME_W = isMobile ? 800 : 1600
+export const GAME_H = isMobile ? 500 : 1000
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 1600,
-  height: 1000,
+  width: GAME_W,
+  height: GAME_H,
   backgroundColor: '#000000',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 1600,
-    height: 1000,
+    width: GAME_W,
+    height: GAME_H,
   },
   render: {
     pixelArt: true,

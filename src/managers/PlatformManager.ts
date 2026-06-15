@@ -82,7 +82,10 @@ export default class PlatformManager {
     const isClickable = this.isClickable(node)
     const visited = node.visited && !isCurrent
     const color = this.getColorForEventType(node.eventType)
-    const radius = node.eventType === PlatformEventType.BOSS ? 48 : 38
+    const mobile = this.scene.scale.width < 1000
+    const radius = node.eventType === PlatformEventType.BOSS
+      ? (mobile ? 28 : 48)
+      : (mobile ? 20 : 38)
 
     const container = this.scene.add.container(node.x, node.y)
     container.setDepth(2)
@@ -123,7 +126,7 @@ export default class PlatformManager {
       this.maskShapes.push(maskShape)
     } else {
       const icon = this.scene.add.text(0, 0, this.getIconForEventType(node.eventType), {
-        font: `bold ${node.eventType === PlatformEventType.BOSS ? 32 : 24}px Arial`,
+        font: `bold ${node.eventType === PlatformEventType.BOSS ? (mobile ? 18 : 32) : (mobile ? 14 : 24)}px Arial`,
         color: visited ? '#888888' : '#ffffff'
       }).setOrigin(0.5)
       container.add(icon)

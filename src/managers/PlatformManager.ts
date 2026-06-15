@@ -19,6 +19,18 @@ export default class PlatformManager {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
+    this.preloadNodeAssets()
+  }
+
+  private preloadNodeAssets() {
+    const toLoad: [string, string][] = [
+      ['makuhita-icon', '/assets/random/Makuhita_icono_HOME.png'],
+    ]
+    const missing = toLoad.filter(([key]) => !this.scene.textures.exists(key))
+    if (missing.length === 0) return
+    missing.forEach(([key, url]) => this.scene.load.image(key, url))
+    this.scene.load.once('complete', () => this.redrawNodes())
+    this.scene.load.start()
   }
 
   setMap(map: GameMap, onNodeClick: (node: MapNode) => void, bossSignatureDexId?: number, bossGymLeaderName?: string) {

@@ -29,10 +29,14 @@ export default class ProfessorScene extends Phaser.Scene {
   private buildOverlay(): HTMLDivElement {
     const wrap = document.createElement('div')
     wrap.style.cssText = `
-      position:fixed; inset:0; background:rgba(0,15,25,0.97);
+      position:fixed; inset:0;
+      background:url('/assets/locations/laboratorio.png') center/cover no-repeat;
       display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
       z-index:9999; font-family:Arial,sans-serif; overflow-y:auto; padding:20px 0 24px;
     `
+    const dimmer = document.createElement('div')
+    dimmer.style.cssText = 'position:fixed; inset:0; background:rgba(0,15,25,0.80); z-index:-1; pointer-events:none;'
+    wrap.appendChild(dimmer)
     this.renderMainMenu(wrap)
     return wrap
   }

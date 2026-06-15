@@ -28,18 +28,16 @@ export default class PlatformManager {
     if (bossSignatureDexId) this.bossSignatureDexId = bossSignatureDexId
     if (bossGymLeaderName) this.bossGymLeaderName = bossGymLeaderName
 
-    const DOJO_KEY = 'makuhita-icon'
-    const DOJO_URL = '/assets/random/Makuhita_icono_HOME.png'
-    if (!this.scene.textures.exists(DOJO_KEY)) {
-      this.scene.load.image(DOJO_KEY, DOJO_URL)
-      this.scene.load.once('complete', () => {
-        console.log('[PlatformManager] makuhita-icon loaded, exists:', this.scene.textures.exists(DOJO_KEY))
-        this.draw()
-      })
-      this.scene.load.once('loaderror', (_file: Phaser.Loader.File) => {
-        console.error('[PlatformManager] makuhita-icon load FAILED:', DOJO_URL)
-        this.draw()
-      })
+    const NODE_ASSETS: [string, string][] = [
+      ['makuhita-icon',  '/assets/random/Makuhita_icono_HOME.png'],
+      ['cientifico-icon', '/assets/random/cientifico.png'],
+      ['baya-icon',      '/assets/random/baya.png'],
+    ]
+    const missing = NODE_ASSETS.filter(([k]) => !this.scene.textures.exists(k))
+    if (missing.length > 0) {
+      missing.forEach(([k, url]) => this.scene.load.image(k, url))
+      this.scene.load.once('complete', () => this.draw())
+      this.scene.load.once('loaderror', () => this.draw())
       this.scene.load.start()
     } else {
       this.draw()
@@ -208,6 +206,14 @@ export default class PlatformManager {
       case PlatformEventType.DOJO:
         key = 'makuhita-icon'
         scale = 1.2
+        break
+      case PlatformEventType.PROFESSOR:
+        key = 'cientifico-icon'
+        scale = 1.2
+        break
+      case PlatformEventType.BERRY_TREE:
+        key = 'baya-icon'
+        scale = 1.4
         break
       case PlatformEventType.BOSS: {
         const gkey = gymLeaderSpriteKey(this.bossGymLeaderName)

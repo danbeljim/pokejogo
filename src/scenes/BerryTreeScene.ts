@@ -26,10 +26,14 @@ export default class BerryTreeScene extends Phaser.Scene {
   private buildOverlay(): HTMLDivElement {
     const wrap = document.createElement('div')
     wrap.style.cssText = `
-      position:fixed; inset:0; background:rgba(5,20,10,0.97);
+      position:fixed; inset:0;
+      background:url('/assets/random/bayas.webp') center/cover no-repeat;
       display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
       z-index:9999; font-family:Arial,sans-serif; overflow-y:auto; padding:20px 0 24px;
     `
+    const dimmer = document.createElement('div')
+    dimmer.style.cssText = 'position:fixed; inset:0; background:rgba(5,20,10,0.75); z-index:-1; pointer-events:none;'
+    wrap.appendChild(dimmer)
 
     const title = document.createElement('h2')
     title.textContent = '🍓 Árbol de Bayas'

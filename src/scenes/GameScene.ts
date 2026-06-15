@@ -83,6 +83,8 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('cajadialogo', '/assets/trainers/cajadialogo.jpg')
     this.load.image('dojo-bg', '/assets/locations/dojo.png')
     this.load.image('makuhita-icon', '/assets/random/Makuhita_icono_HOME.png')
+    this.load.image('cientifico-icon', '/assets/random/cientifico.png')
+    this.load.image('baya-icon', '/assets/random/baya.png')
     this.load.image('tall-grass', '/assets/trainers/grass.png')
     this.load.image('tall-grass-tile', '/assets/trainers/Zona_de_hierba_alta_XY.png')
     this.load.image('bici', '/assets/trainers/bici.png')

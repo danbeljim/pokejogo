@@ -60,8 +60,9 @@ export default class RandomPickerScene extends Phaser.Scene {
     const wrap = document.createElement('div')
     wrap.style.cssText = `
       position:fixed; inset:0; background:rgba(10,10,26,0.96);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
       z-index:9999; font-family:Arial,sans-serif;
+      overflow-y:auto; padding:16px 0 24px;
     `
 
     const isMobile = window.innerWidth < 700
@@ -79,10 +80,10 @@ export default class RandomPickerScene extends Phaser.Scene {
     row.style.cssText = `display:flex; gap:${gap}; flex-wrap:nowrap; justify-content:center; width:100%; padding:0 8px; box-sizing:border-box;`
     wrap.appendChild(row)
 
-    const imgSize = isMobile ? '60px' : '140px'
-    const nameSize = isMobile ? '12px' : '20px'
-    const descSize = isMobile ? '10px' : '14px'
-    const padding = isMobile ? '12px 8px' : '24px'
+    const imgSize = isMobile ? '50px' : '140px'
+    const nameSize = isMobile ? '11px' : '20px'
+    const descSize = isMobile ? '9px' : '14px'
+    const padding = isMobile ? '10px 6px' : '24px'
 
     RANDOM_METHODS.forEach(method => {
       const card = document.createElement('div')

@@ -64,45 +64,57 @@ export default class RandomPickerScene extends Phaser.Scene {
       z-index:9999; font-family:Arial,sans-serif;
     `
 
+    const isMobile = window.innerWidth < 700
+    const titleSize = isMobile ? '18px' : '28px'
+    const titleMargin = isMobile ? '16px' : '40px'
+
     const title = document.createElement('h2')
     title.textContent = '¡Elige tu método de exploración!'
-    title.style.cssText = 'color:#AA44FF; margin-bottom:40px; font-size:28px;'
+    title.style.cssText = `color:#AA44FF; margin-bottom:${titleMargin}; font-size:${titleSize}; text-align:center; padding:0 12px;`
     wrap.appendChild(title)
 
     const row = document.createElement('div')
-    row.style.cssText = 'display:flex; gap:40px;'
+    const cardW = isMobile ? `${Math.floor((window.innerWidth - 48) / 3)}px` : '200px'
+    const gap = isMobile ? '8px' : '40px'
+    row.style.cssText = `display:flex; gap:${gap}; flex-wrap:nowrap; justify-content:center; width:100%; padding:0 8px; box-sizing:border-box;`
     wrap.appendChild(row)
+
+    const imgSize = isMobile ? '60px' : '140px'
+    const nameSize = isMobile ? '12px' : '20px'
+    const descSize = isMobile ? '10px' : '14px'
+    const padding = isMobile ? '12px 8px' : '24px'
 
     RANDOM_METHODS.forEach(method => {
       const card = document.createElement('div')
       card.style.cssText = `
         background:#1a0a2e; border:2px solid #AA44FF; border-radius:12px;
-        padding:24px; width:200px; text-align:center; cursor:pointer;
-        transition:transform 0.15s, border-color 0.15s;
+        padding:${padding}; width:${cardW}; text-align:center; cursor:pointer;
+        transition:transform 0.15s, border-color 0.15s; box-sizing:border-box;
       `
       card.onmouseenter = () => { card.style.transform = 'scale(1.05)'; card.style.borderColor = '#FFD700' }
       card.onmouseleave = () => { card.style.transform = 'scale(1)'; card.style.borderColor = '#AA44FF' }
 
       const img = document.createElement('img')
       img.src = method.assetUrl
-      img.style.cssText = 'width:140px; height:140px; object-fit:contain; display:block; margin:0 auto 16px;'
+      img.style.cssText = `width:${imgSize}; height:${imgSize}; object-fit:contain; display:block; margin:0 auto ${isMobile ? '8px' : '16px'};`
       card.appendChild(img)
 
       const name = document.createElement('div')
       name.textContent = method.name
-      name.style.cssText = 'color:#ffffff; font-size:20px; font-weight:bold; margin-bottom:8px;'
+      name.style.cssText = `color:#ffffff; font-size:${nameSize}; font-weight:bold; margin-bottom:4px;`
       card.appendChild(name)
 
       const desc = document.createElement('div')
       desc.textContent = method.description
-      desc.style.cssText = 'color:#ccaaff; font-size:14px; margin-bottom:20px;'
+      desc.style.cssText = `color:#ccaaff; font-size:${descSize}; margin-bottom:${isMobile ? '10px' : '20px'};`
       card.appendChild(desc)
 
       const btn = document.createElement('button')
       btn.textContent = 'Elegir'
       btn.style.cssText = `
         background:#222; color:#FFD700; border:1px solid #FFD700;
-        padding:8px 20px; font-size:15px; font-weight:bold; border-radius:6px; cursor:pointer;
+        padding:${isMobile ? '6px 10px' : '8px 20px'}; font-size:${isMobile ? '12px' : '15px'};
+        font-weight:bold; border-radius:6px; cursor:pointer; width:100%;
       `
       btn.onmouseenter = () => { btn.style.background = '#FFD700'; btn.style.color = '#000' }
       btn.onmouseleave = () => { btn.style.background = '#222'; btn.style.color = '#FFD700' }

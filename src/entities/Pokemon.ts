@@ -54,6 +54,7 @@ export class Pokemon implements PokemonData {
   }
 
   levelUp(): LevelUpEvent {
+    if (this.level >= 70) return { learnedMoves: [] }
     this.level++
     this.maxHp += 5
     this.hp = Math.min(this.hp + 5, this.maxHp)

@@ -24,9 +24,9 @@ export interface GameMap {
 // Tower floor event pools per floor index (0=entry, last=boss)
 const TOWER_FLOOR_POOLS: PlatformEventType[][] = [
   [PlatformEventType.POKEMON_CENTER],                                                                          // Entry (Pueblo Lavanda)
-  [PlatformEventType.WILD_POKEMON, PlatformEventType.MEMORIAL, PlatformEventType.NARRATIVE],                  // Piso 1
+  [PlatformEventType.WILD_POKEMON, PlatformEventType.MEMORIAL, PlatformEventType.ITEM_PICKUP],                // Piso 1
   [PlatformEventType.WILD_POKEMON, PlatformEventType.ITEM_PICKUP, PlatformEventType.MEMORIAL],                // Piso 2
-  [PlatformEventType.WILD_POKEMON, PlatformEventType.NARRATIVE, PlatformEventType.ITEM_PICKUP],               // Piso 3
+  [PlatformEventType.WILD_POKEMON, PlatformEventType.ITEM_PICKUP, PlatformEventType.MEMORIAL],               // Piso 3
   [PlatformEventType.TRAINER_BATTLE, PlatformEventType.WILD_POKEMON, PlatformEventType.ITEM_PICKUP],          // Piso 4 (Haunter miniboss)
   [PlatformEventType.BOSS],                                                                                    // Boss (Marowak Fantasma)
 ]

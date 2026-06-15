@@ -43,4 +43,75 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [MainMenuScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene]
 }
 
-new Phaser.Game(config)
+const game = new Phaser.Game(config)
+
+// --- Portrait mode: rotate canvas -90deg so landscape game fills portrait screen ---
+
+let isPortrait = false
+
+function getPortraitScale(vw: number, vh: number): number {
+  return Math.min(vw / GAME_H, vh / GAME_W)
+}
+
+function applyPortraitCSS(vw: number, vh: number) {
+  const P = Math.min(vw / GAME_W, vh / GAME_H) // Phaser FIT scale
+  const S = getPortraitScale(vw, vh)             // target combined scale
+  const k = S / P
+  game.canvas.style.transformOrigin = 'center center'
+  game.canvas.style.transform = `rotate(-90deg) scale(${k})`
+  game.scale.refresh()
+}
+
+function removeCSSTransform() {
+  game.canvas.style.transform = ''
+  game.canvas.style.transformOrigin = ''
+  game.scale.refresh()
+}
+
+function checkOrientation() {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const portrait = vh > vw
+  if (portrait === isPortrait) return
+  isPortrait = portrait
+  if (portrait) applyPortraitCSS(vw, vh)
+  else removeCSSTransform()
+}
+
+game.events.once(Phaser.Core.Events.READY, () => {
+  // Patch InputManager.transformPointer to remap touch coords when rotated
+  const im = game.input as any
+  const orig: Function = im.transformPointer.bind(im)
+
+  im.transformPointer = function (pointer: any, pageX: number, pageY: number, wasMove: boolean) {
+    if (!isPortrait) return orig(pointer, pageX, pageY, wasMove)
+
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const S = getPortraitScale(vw, vh)
+    const P = Math.min(vw / GAME_W, vh / GAME_H)
+
+    // Rotate +90° to invert the canvas -90° rotation, then scale to game coords
+    const gx = (vh / 2 - pageY) / S + GAME_W / 2
+    const gy = (pageX - vw / 2) / S + GAME_H / 2
+
+    // Convert game coords back to fake page coords that Phaser's normal transform maps correctly
+    // Phaser: pos = (page - aabbCorner) * displayScale
+    // aabbLeft = vw/2 - S*GAME_H/2, aabbTop = vh/2 - S*GAME_W/2, displayScale = 1/P
+    const aabbLeft = vw / 2 - S * GAME_H / 2
+    const aabbTop = vh / 2 - S * GAME_W / 2
+    const fakePageX = gx * P + aabbLeft
+    const fakePageY = gy * P + aabbTop
+
+    return orig(pointer, fakePageX, fakePageY, wasMove)
+  }
+
+  // Reapply CSS after Phaser resizes canvas (e.g. window resize in portrait)
+  game.scale.on(Phaser.Scale.Events.RESIZE, () => {
+    if (isPortrait) applyPortraitCSS(window.innerWidth, window.innerHeight)
+  })
+
+  window.addEventListener('resize', () => setTimeout(checkOrientation, 100))
+  window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200))
+  checkOrientation()
+})

@@ -83,6 +83,7 @@ export default class GameScene extends Phaser.Scene {
     preloadBadgeSprites(this)
     this.load.image('cajadialogo', '/assets/trainers/cajadialogo.jpg')
     this.load.image('dojo-bg', '/assets/locations/dojo.png')
+    this.load.image('home-icon', '/assets/locations/home.png')
     this.load.image('makuhita-icon', '/assets/random/Makuhita_icono_HOME.png')
     this.load.image('cientifico-icon', '/assets/random/cientifico.png')
     this.load.image('baya-icon', '/assets/random/baya.png')
@@ -122,6 +123,8 @@ export default class GameScene extends Phaser.Scene {
     // Configure EventManager for roguelike mode
     this.eventManager.roguelikeMode = this.roguelikeMode
     this.eventManager.trainerClass = this.trainerClass
+    this.eventManager.wildPool = currentMap.wildPool
+    this.eventManager.currentFloor = this.mapManager.currentMapId
 
     if (this.playerTeam.length === 0) {
       const starter = createStarterByDexId(this.starterDexId)
@@ -147,7 +150,8 @@ export default class GameScene extends Phaser.Scene {
           currentMap.platformCount,
           currentMap.difficulty,
           playerMaxLevel,
-          currentMap.ghostOnly
+          currentMap.ghostOnly,
+          currentMap.wildPool
         )
 
     // Explorador: convert 2 mid nodes to RANDOM events
@@ -717,6 +721,7 @@ export default class GameScene extends Phaser.Scene {
         synergyBonuses: syn ? { atk: syn.atkBonus, def: syn.defBonus, spd: syn.spdBonus } : undefined,
         battleSpeed: this.battleSpeed,
         backgroundKey: result.type === PlatformEventType.DOUBLE_BATTLE ? 'dobles-bg' : undefined,
+        isDouble: result.isDouble ?? false,
         onComplete: (won: boolean) => this.onBattleEnd(won, result.battleType!)
       })
     } else if (result.requiresItemPicker) {
@@ -865,7 +870,7 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    const rewardMsg = this.eventManager.applyBattleReward(this.playerTeam, battleType)
+    const { message: rewardMsg, pendingEvolutions } = this.eventManager.applyBattleReward(this.playerTeam, battleType)
 
     if (battleType === 'boss') {
       const currentMap = this.mapManager.getCurrentMap()
@@ -919,6 +924,19 @@ export default class GameScene extends Phaser.Scene {
     } else {
       this.updateHud()
       this.showToast(`¡Victoria! ${rewardMsg}`)
+    }
+
+    if (pendingEvolutions.length > 0) {
+      this.time.delayedCall(600, () => {
+        this.scene.pause()
+        this.scene.launch('EvoPickerScene', {
+          pokemon: pendingEvolutions[0],
+          onComplete: () => {
+            this.scene.resume('GameScene')
+            this.updateHud()
+          }
+        })
+      })
     }
   }
 

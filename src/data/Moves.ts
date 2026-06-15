@@ -29,7 +29,22 @@ export const MOVES: Record<string, Move> = {
   'Karate Chop':   { name: 'Karate Chop',   nameEs: 'Golpe Karate',   type: 'fighting', power: 50 },
   'Poison Sting':  { name: 'Poison Sting',  nameEs: 'Picadura',       type: 'poison',   power: 15 },
   'Lick':          { name: 'Lick',          nameEs: 'Lametón',        type: 'ghost',    power: 30 },
-  'Ice Beam':      { name: 'Ice Beam',      nameEs: 'Rayo Hielo',     type: 'ice',      power: 90 }
+  'Ice Beam':      { name: 'Ice Beam',      nameEs: 'Rayo Hielo',     type: 'ice',      power: 90 },
+  'Dig':           { name: 'Dig',           nameEs: 'Agujero',         type: 'ground',   power: 80 },
+  'Earthquake':    { name: 'Earthquake',    nameEs: 'Terremoto',       type: 'ground',   power: 100 },
+  'Low Kick':      { name: 'Low Kick',      nameEs: 'Patada Baja',     type: 'fighting', power: 50 },
+  'Cross Chop':    { name: 'Cross Chop',    nameEs: 'Golpe Bis',       type: 'fighting', power: 100 },
+  'Sludge':        { name: 'Sludge',        nameEs: 'Fango',           type: 'poison',   power: 65 },
+  'Sludge Bomb':   { name: 'Sludge Bomb',   nameEs: 'Bomba Fango',     type: 'poison',   power: 90 },
+  'Night Shade':   { name: 'Night Shade',   nameEs: 'Noche Cerrada',   type: 'ghost',    power: 50 },
+  'Shadow Ball':   { name: 'Shadow Ball',   nameEs: 'Bola Sombra',     type: 'ghost',    power: 80 },
+  'Rock Blast':    { name: 'Rock Blast',    nameEs: 'Tumba Rocas',     type: 'rock',     power: 25 },
+  'Stone Edge':    { name: 'Stone Edge',    nameEs: 'Roca Afilada',    type: 'rock',     power: 100 },
+  'Silver Wind':   { name: 'Silver Wind',   nameEs: 'Viento Plata',    type: 'bug',      power: 60 },
+  'Bug Bite':      { name: 'Bug Bite',      nameEs: 'Picadura Bicho',  type: 'bug',      power: 60 },
+  'Dragon Rage':   { name: 'Dragon Rage',   nameEs: 'Furia Dragón',    type: 'dragon',   power: 40 },
+  'Dragon Breath': { name: 'Dragon Breath', nameEs: 'Aliento Dragón',  type: 'dragon',   power: 60 },
+  'Blizzard':      { name: 'Blizzard',      nameEs: 'Ventisca',        type: 'ice',      power: 110 },
 }
 
 export function getMove(name: string): Move {
@@ -45,14 +60,14 @@ const TYPE_MOVE_POOL: Partial<Record<string, { name: string; minLevel: number }[
   electric: [{ name: 'Thunder Shock', minLevel: 1 }, { name: 'Thunderbolt', minLevel: 15 }],
   flying:   [{ name: 'Peck', minLevel: 1 }, { name: 'Wing Attack', minLevel: 10 }],
   psychic:  [{ name: 'Confusion', minLevel: 1 }, { name: 'Psychic', minLevel: 15 }],
-  rock:     [{ name: 'Tackle', minLevel: 1 }, { name: 'Rock Throw', minLevel: 5 }],
-  fighting: [{ name: 'Tackle', minLevel: 1 }, { name: 'Karate Chop', minLevel: 5 }],
-  poison:   [{ name: 'Poison Sting', minLevel: 1 }, { name: 'Tackle', minLevel: 1 }],
-  ground:   [{ name: 'Tackle', minLevel: 1 }, { name: 'Headbutt', minLevel: 10 }],
-  ghost:    [{ name: 'Lick', minLevel: 1 }, { name: 'Confusion', minLevel: 10 }],
-  ice:      [{ name: 'Tackle', minLevel: 1 }, { name: 'Ice Beam', minLevel: 15 }],
-  bug:      [{ name: 'Tackle', minLevel: 1 }, { name: 'Quick Attack', minLevel: 8 }],
-  dragon:   [{ name: 'Headbutt', minLevel: 1 }, { name: 'Bite', minLevel: 10 }],
+  rock:     [{ name: 'Rock Throw', minLevel: 1 }, { name: 'Rock Blast', minLevel: 5 }, { name: 'Stone Edge', minLevel: 20 }],
+  fighting: [{ name: 'Low Kick', minLevel: 1 }, { name: 'Karate Chop', minLevel: 5 }, { name: 'Cross Chop', minLevel: 20 }],
+  poison:   [{ name: 'Poison Sting', minLevel: 1 }, { name: 'Sludge', minLevel: 10 }, { name: 'Sludge Bomb', minLevel: 20 }],
+  ground:   [{ name: 'Dig', minLevel: 1 }, { name: 'Earthquake', minLevel: 15 }],
+  ghost:    [{ name: 'Lick', minLevel: 1 }, { name: 'Night Shade', minLevel: 10 }, { name: 'Shadow Ball', minLevel: 20 }],
+  ice:      [{ name: 'Ice Beam', minLevel: 1 }, { name: 'Blizzard', minLevel: 20 }],
+  bug:      [{ name: 'Silver Wind', minLevel: 1 }, { name: 'Bug Bite', minLevel: 8 }],
+  dragon:   [{ name: 'Dragon Rage', minLevel: 1 }, { name: 'Dragon Breath', minLevel: 15 }],
 }
 
 export function getMovesForType(type: string, level: number): string[] {

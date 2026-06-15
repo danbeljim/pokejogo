@@ -11,6 +11,7 @@ import RandomPickerScene from './scenes/RandomPickerScene'
 import BerryTreeScene from './scenes/BerryTreeScene'
 import DojoScene from './scenes/DojoScene'
 import ProfessorScene from './scenes/ProfessorScene'
+import EvoPickerScene from './scenes/EvoPickerScene'
 
 const isMobile = window.innerWidth < 1024 || window.innerHeight < 600
 export const GAME_W = isMobile ? 800 : 1600
@@ -43,7 +44,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [MainMenuScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene, BerryTreeScene, DojoScene, ProfessorScene]
+  scene: [MainMenuScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene, BerryTreeScene, DojoScene, ProfessorScene, EvoPickerScene]
 }
 
 new Phaser.Game(config)

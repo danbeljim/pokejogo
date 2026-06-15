@@ -33,6 +33,9 @@ const TOWER_FLOOR_POOLS: PlatformEventType[][] = [
 ]
 
 export default class LevelGenerator {
+  private portalGenerated: boolean = false
+  private currentWildPool?: number[]
+
   generateTower(playerMaxLevel: number): GameMap {
     const nodes: MapNode[] = []
     const mobile = GAME_W < 1000
@@ -124,18 +127,20 @@ export default class LevelGenerator {
     }
   }
 
-  generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5, ghostOnly: boolean = false): GameMap {
+  generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5, ghostOnly: boolean = false, wildPool?: number[]): GameMap {
+    this.portalGenerated = false
+    this.currentWildPool = wildPool
     const nodes: MapNode[] = []
     const mobile = GAME_W < 1000
     const worldWidth = GAME_W
-    const rows = 9
+    const rows = 8
     const minY = Math.round(GAME_H * (mobile ? 0.20 : 0.17))
     const maxY = Math.round(GAME_H * (mobile ? 0.84 : 0.87))
     const rowSpacing = (maxY - minY) / (rows - 1)
 
     let nextId = 0
     const rowNodes: number[][] = []
-    const nodesPerRow = [1, 2, 3, 4, 5, 4, 5, 2, 1]
+    const nodesPerRow = [1, 2, 3, 4, 5, 4, 2, 1]
 
     // Position nodes in centered diamond grid
     for (let r = 0; r < rows; r++) {
@@ -239,11 +244,12 @@ export default class LevelGenerator {
     if (rand < 0.52 + difficulty * 0.03) return PlatformEventType.WILD_POKEMON
     if (rand < 0.63) return PlatformEventType.POKEMON_CAPTURE
     if (rand < 0.74) return PlatformEventType.ITEM_PICKUP
-    if (rand < 0.81) return PlatformEventType.BERRY_TREE
+    if (rand < 0.78) return PlatformEventType.BERRY_TREE
     if (rand < 0.87) return PlatformEventType.DOJO
     if (rand < 0.92) return PlatformEventType.PROFESSOR
-    if (rand < 0.96) return PlatformEventType.RANDOM
-    return PlatformEventType.PORTAL
+    if (rand < 0.97) return PlatformEventType.RANDOM
+    if (!this.portalGenerated) { this.portalGenerated = true; return PlatformEventType.PORTAL }
+    return PlatformEventType.PROFESSOR
   }
 
   private generateEventData(eventType: PlatformEventType, difficulty: number, row: number, rows: number, playerMaxLevel: number, ghostOnly: boolean = false): any {
@@ -264,8 +270,11 @@ export default class LevelGenerator {
       case PlatformEventType.WILD_POKEMON: {
         const pool = ghostOnly
           ? POKEMON_LIST.filter(p => p.type === 'ghost')
+          : this.currentWildPool
+          ? POKEMON_LIST.filter(p => this.currentWildPool!.includes(p.dexId))
           : POKEMON_LIST
-        const entry = pool[Math.floor(Math.random() * pool.length)]
+        const filtered = pool.length > 0 ? pool : POKEMON_LIST
+        const entry = filtered[Math.floor(Math.random() * filtered.length)]
         return { pokemonId: entry.dexId, level: scaledLevel }
       }
       case PlatformEventType.ITEM_PICKUP:

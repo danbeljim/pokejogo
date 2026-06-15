@@ -29,10 +29,23 @@ export const EVOLUTIONS: Record<number, EvolutionTarget> = {
   79:  { level: 37, toDexId: 80,  toName: 'Slowbro',    toType: 'psychic' },
   92:  { level: 25, toDexId: 93,  toName: 'Haunter',    toType: 'ghost' },
   129: { level: 20, toDexId: 130, toName: 'Gyarados',   toType: 'water' },
-  133: { level: 25, toDexId: 134, toName: 'Vaporeon',   toType: 'water' }
+}
+
+export const BRANCH_EVOLUTIONS: Record<number, { level: number; options: EvolutionTarget[] }> = {
+  133: {
+    level: 20,
+    options: [
+      { level: 20, toDexId: 134, toName: 'Vaporeon', toType: 'water' },
+      { level: 20, toDexId: 135, toName: 'Jolteon',  toType: 'electric' },
+      { level: 20, toDexId: 136, toName: 'Flareon',  toType: 'fire' },
+    ]
+  }
 }
 
 // All evolution target dex IDs (for sprite preload)
 export const EVOLUTION_TARGET_IDS: number[] = Array.from(
-  new Set(Object.values(EVOLUTIONS).map(e => e.toDexId))
+  new Set([
+    ...Object.values(EVOLUTIONS).map(e => e.toDexId),
+    ...Object.values(BRANCH_EVOLUTIONS).flatMap(b => b.options.map(o => o.toDexId)),
+  ])
 )

@@ -1,19 +1,21 @@
 import { PokemonType } from '../data/Types'
-import { EVOLUTIONS } from '../data/Evolution'
+import { EVOLUTIONS, BRANCH_EVOLUTIONS } from '../data/Evolution'
 import { LEARNSET } from '../data/Learnset'
 
 export interface LevelUpEvent {
   learnedMoves: string[]
   evolvedFrom?: string
   evolvedTo?: string
+  needsEvoChoice?: boolean
 }
 
 export function calcStat(base: number, level: number): number {
-  return Math.max(1, Math.floor(base * level / 50) + 5)
+  const raw = Math.round(base * (1 + 0.04 * Math.pow(level, 1.05)))
+  return Math.max(1, raw <= 150 ? raw : Math.round(150 + (raw - 150) * 0.5))
 }
 
 export function calcHp(base: number, level: number): number {
-  return Math.floor(base * level / 50) + level + 10
+  return Math.max(1, Math.round(base * (1 + 0.05 * Math.pow(level, 1.05)) + level * 0.5))
 }
 
 export interface PokemonData {
@@ -49,6 +51,7 @@ export class Pokemon implements PokemonData {
   heldItem?: string
   traits: string[] = []
   experience: number = 0
+  pendingEvoChoice: boolean = false
   baseHp: number
   baseAtk: number
   baseDef: number
@@ -68,10 +71,11 @@ export class Pokemon implements PokemonData {
     this.heldItem = data.heldItem
     this.traits = data.traits || []
     // Reverse-engineer base stats from current stats if not provided
-    this.baseHp  = data.baseHp  ?? Math.max(1, Math.round((data.maxHp - data.level - 10) * 50 / data.level))
-    this.baseAtk = data.baseAtk ?? Math.max(1, Math.round((data.attack - 5) * 50 / data.level))
-    this.baseDef = data.baseDef ?? Math.max(1, Math.round((data.defense - 5) * 50 / data.level))
-    this.baseSpd = data.baseSpd ?? Math.max(1, Math.round((data.speed - 5) * 50 / data.level))
+    const growthFactor = (1 + 0.04 * Math.pow(data.level, 1.05))
+    this.baseHp  = data.baseHp  ?? Math.max(1, Math.round((data.maxHp - data.level * 0.5) / (1 + 0.05 * Math.pow(data.level, 1.05))))
+    this.baseAtk = data.baseAtk ?? Math.max(1, Math.round(data.attack / growthFactor))
+    this.baseDef = data.baseDef ?? Math.max(1, Math.round(data.defense / growthFactor))
+    this.baseSpd = data.baseSpd ?? Math.max(1, Math.round(data.speed / growthFactor))
   }
 
   levelUp(): LevelUpEvent {
@@ -96,6 +100,13 @@ export class Pokemon implements PokemonData {
         this.moves.push(entry.move)
         event.learnedMoves.push(entry.move)
       }
+    }
+
+    // Branch evolution (e.g. Eevee): flag for player choice, don't auto-evolve
+    const branchEvo = BRANCH_EVOLUTIONS[this.id]
+    if (branchEvo && this.level >= branchEvo.level && !this.pendingEvoChoice) {
+      this.pendingEvoChoice = true
+      event.needsEvoChoice = true
     }
 
     // Evolve
@@ -131,6 +142,8 @@ export class Pokemon implements PokemonData {
         94:  [60,  65,  60, 110],  // Gengar
         130: [95, 125,  79,  81],  // Gyarados
         134: [130,  65,  60,  65], // Vaporeon
+        135: [65,   65,  60, 130], // Jolteon
+        136: [65,  130,  60,  65], // Flareon
       }
       const newBs = EVO_BASE_STATS[this.id]
       if (newBs) {
@@ -145,6 +158,30 @@ export class Pokemon implements PokemonData {
     }
 
     return event
+  }
+
+  applyEvoChoice(toDexId: number, toName: string, toType: PokemonType) {
+    const EVO_BASE_STATS: Record<number, [number, number, number, number]> = {
+      134: [130,  65,  60,  65],
+      135: [65,   65,  60, 130],
+      136: [65,  130,  60,  65],
+    }
+    this.pendingEvoChoice = false
+    const prevName = this.name
+    this.id = toDexId
+    this.name = toName
+    this.type = toType
+    const bs = EVO_BASE_STATS[toDexId]
+    if (bs) {
+      this.baseHp = bs[0]; this.baseAtk = bs[1]
+      this.baseDef = bs[2]; this.baseSpd = bs[3]
+    }
+    this.maxHp   = calcHp(this.baseHp, this.level)
+    this.hp      = this.maxHp
+    this.attack  = calcStat(this.baseAtk, this.level)
+    this.defense = calcStat(this.baseDef, this.level)
+    this.speed   = calcStat(this.baseSpd, this.level)
+    return prevName
   }
 
   takeDamage(damage: number) {

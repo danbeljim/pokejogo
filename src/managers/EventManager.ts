@@ -1,10 +1,11 @@
 import { PlatformEventType } from '../types'
 import { MapNode } from './LevelGenerator'
 import { Pokemon } from '../entities/Pokemon'
-import { createWildPokemon, createGymLeaderTeam, createTrainerTeam } from '../entities/PokemonFactory'
+import { createWildPokemon, createGymLeaderTeam } from '../entities/PokemonFactory'
 import { assignRogueTraits } from '../data/RoguelikeData'
+import { applyEnemyScale } from '../data/StatSystem'
 
-const LEGENDARY_IDS = [144, 145, 146, 150, 151]
+const PORTAL_IDS = [147, 63, 92, 143, 142]
 
 export interface EventResult {
   type: PlatformEventType
@@ -23,11 +24,14 @@ export interface EventResult {
   requiresProfessor?: boolean
   requiresPortal?: boolean
   portalPokemon?: Pokemon
+  isDouble?: boolean
 }
 
 export default class EventManager {
   roguelikeMode: boolean = false
   trainerClass: string | null = null
+  wildPool: number[] | undefined = undefined
+  currentFloor: number = 0
 
   handleEvent(platform: MapNode, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string, bossMaxLevel: number = 14, wildMin: number = 3, wildMax: number = 6, ghostOnly: boolean = false): EventResult {
     const trainerMax = Math.max(3, Math.floor(bossMaxLevel * 0.70))
@@ -71,9 +75,12 @@ export default class EventManager {
     const seen = new Set<number>()
     const GHOST_IDS = [92, 92, 93]
     let tries = 0
+    const poolIds = (!ghostOnly && this.wildPool && this.wildPool.length > 0) ? this.wildPool : null
     while (opts.length < 3 && tries < 20) {
       const p = ghostOnly
         ? createWildPokemon(level, GHOST_IDS[opts.length])
+        : poolIds
+        ? createWildPokemon(level, poolIds[Math.floor(Math.random() * poolIds.length)])
         : createWildPokemon(level)
       if (!seen.has(p.id) || ghostOnly) {
         seen.add(p.id)
@@ -98,6 +105,7 @@ export default class EventManager {
   private prepareWildBattle(platform: MapNode, wildMin: number, wildMax: number): EventResult {
     const level = platform.eventData?.level || (wildMin + Math.floor(Math.random() * (wildMax - wildMin + 1)))
     const wild = createWildPokemon(level, platform.eventData?.pokemonId, true)
+    applyEnemyScale(wild, this.currentFloor)
     if (this.roguelikeMode) assignRogueTraits(wild, false)
     return {
       type: PlatformEventType.WILD_POKEMON,
@@ -108,13 +116,21 @@ export default class EventManager {
     }
   }
 
+  private buildTeamFromPool(size: number, level: number): Pokemon[] {
+    const poolIds = this.wildPool && this.wildPool.length > 0 ? this.wildPool : undefined
+    return Array.from({ length: size }, (_, i) => {
+      const lvl = Math.max(1, level - i)
+      const dexId = poolIds ? poolIds[Math.floor(Math.random() * poolIds.length)] : undefined
+      return createWildPokemon(lvl, dexId, true)
+    })
+  }
+
   private prepareTrainerBattle(platform: MapNode, difficulty: number, trainerMax: number): EventResult {
     const teamSize = Math.min(1 + Math.floor(difficulty / 2), 3)
-    const team: Pokemon[] = platform.eventData?.team || Array.from({ length: teamSize }, (_, i) => {
-      const lvl = Math.max(2, Math.floor(trainerMax * (0.8 - i * 0.1)))
-      const p = createWildPokemon(lvl, undefined, true)
+    const team: Pokemon[] = this.buildTeamFromPool(teamSize, Math.max(2, Math.floor(trainerMax * 0.8)))
+    team.forEach(p => {
+      applyEnemyScale(p, this.currentFloor)
       if (this.roguelikeMode) assignRogueTraits(p, false)
-      return p
     })
     return {
       type: PlatformEventType.TRAINER_BATTLE,
@@ -174,21 +190,23 @@ export default class EventManager {
   }
 
   private prepareDoubleBattle(difficulty: number, trainerMax: number): EventResult {
-    const team: Pokemon[] = createTrainerTeam(Math.min(difficulty + 1, 5), trainerMax)
-    if (team.length < 2) team.push(createWildPokemon(trainerMax, undefined, true))
+    const teamSize = Math.min(2 + Math.floor(difficulty / 2), 4)
+    const team: Pokemon[] = this.buildTeamFromPool(Math.max(2, teamSize), Math.max(2, Math.floor(trainerMax * 0.85)))
+    team.slice(0, 2).forEach(p => applyEnemyScale(p, this.currentFloor))
     return {
       type: PlatformEventType.DOUBLE_BATTLE,
       message: '⚔️ ¡COMBATE DOBLE! Dos entrenadores te desafían.',
       requiresBattle: true,
       enemyTeam: team.slice(0, 2),
-      battleType: 'trainer'
+      battleType: 'trainer',
+      isDouble: true
     }
   }
 
   private preparePortalBattle(playerTeam: Pokemon[]): EventResult {
-    const playerMax = Math.max(...playerTeam.map(p => p.level), 20)
-    const level = Math.max(35, playerMax + 5)
-    const dexId = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)]
+    const playerMax = Math.max(...playerTeam.map(p => p.level), 5)
+    const level = playerMax + 5
+    const dexId = PORTAL_IDS[Math.floor(Math.random() * PORTAL_IDS.length)]
     const legendary = createWildPokemon(level, dexId, true)
     return {
       type: PlatformEventType.PORTAL,
@@ -198,12 +216,13 @@ export default class EventManager {
     }
   }
 
-  applyBattleReward(playerTeam: Pokemon[], battleType: 'wild' | 'trainer' | 'boss'): string {
+  applyBattleReward(playerTeam: Pokemon[], battleType: 'wild' | 'trainer' | 'boss'): { message: string; pendingEvolutions: Pokemon[] } {
     const baseGain = battleType === 'wild' ? 1 : battleType === 'trainer' ? 2 : 3
     const levelGain = (this.roguelikeMode && this.trainerClass === 'luchador')
       ? Math.ceil(baseGain * 1.5)
       : baseGain
     const notes: string[] = []
+    const pendingEvolutions: Pokemon[] = []
     playerTeam.forEach(p => {
       if (!p.isAlive()) return
       for (let i = 0; i < levelGain; i++) {
@@ -214,9 +233,13 @@ export default class EventManager {
         if (ev.evolvedTo) {
           notes.push(`¡${ev.evolvedFrom} evolucionó a ${ev.evolvedTo}!`)
         }
+        if (ev.needsEvoChoice && !pendingEvolutions.includes(p)) {
+          pendingEvolutions.push(p)
+        }
       }
     })
     const base = `+${levelGain} Nv`
-    return notes.length ? `${base}. ${notes.join(' ')}` : base
+    const message = notes.length ? `${base}. ${notes.join(' ')}` : base
+    return { message, pendingEvolutions }
   }
 }

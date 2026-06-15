@@ -1,19 +1,21 @@
 import { Pokemon } from '../entities/Pokemon'
 
-export const TIER_MODIFIERS: Record<string, number> = {
-  common:    1.00,
-  uncommon:  1.08,
-  rare:      1.16,
-  elite:     1.25,
-  pseudo:    1.38,
-  legendary: 1.55,
+// Flat bonuses added to base stats (not multiplied)
+export const TIER_BONUS: Record<string, number> = {
+  common:    0,
+  uncommon:  3,
+  rare:      6,
+  elite:     12,
+  pseudo:    18,
+  legendary: 25,
 }
 
-// index = evolutionStage - 1
-export const EVO_MODIFIERS = [1.00, 1.12, 1.25]
+// index = evolutionStage - 1, flat bonus added to base stats
+export const EVO_BONUS = [0, 8, 15]
 
+// Boss gets ONE multiplier only
 export const BOSS_MULTIPLIERS = {
-  hp: 1.80, attack: 1.30, defense: 1.40, speed: 1.15,
+  hp: 1.40, attack: 1.15, defense: 1.20, speed: 1.00,
 }
 
 export const POKEMON_TIERS: Record<number, string> = {
@@ -68,21 +70,21 @@ export const EVOLUTION_STAGES: Record<number, number> = {
   71: 3, 76: 3, 82: 3, 94: 3, 103: 3, 131: 3,
 }
 
-export function getTierMod(dexId: number): number {
-  return TIER_MODIFIERS[POKEMON_TIERS[dexId] ?? 'common']
+export function getTierBonus(dexId: number): number {
+  return TIER_BONUS[POKEMON_TIERS[dexId] ?? 'common']
 }
 
-export function getEvoMod(dexId: number): number {
-  return EVO_MODIFIERS[(EVOLUTION_STAGES[dexId] ?? 1) - 1]
+export function getEvoBonus(dexId: number): number {
+  return EVO_BONUS[(EVOLUTION_STAGES[dexId] ?? 1) - 1]
 }
 
 export function applyEnemyScale(p: Pokemon, floor: number): void {
-  const scale = 1.15 * (1 + floor * 0.04)
-  p.attack  = Math.round(p.attack  * scale)
-  p.defense = Math.round(p.defense * scale)
-  p.speed   = Math.round(p.speed   * scale)
-  p.maxHp   = Math.round(p.maxHp   * scale)
-  p.hp      = p.maxHp
+  // Additive flat bonus only — no chained multiplier
+  const bonus = floor * 2
+  p.attack  += bonus
+  p.defense += bonus
+  p.maxHp   += bonus * 3
+  p.hp = p.maxHp
 }
 
 export function applyBossScale(p: Pokemon): void {

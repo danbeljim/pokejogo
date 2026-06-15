@@ -1,7 +1,7 @@
 import { Pokemon, calcStat, calcHp } from './Pokemon'
 import { PokemonType } from '../data/Types'
 import { getMovesForType } from '../data/Moves'
-import { getTierMod, getEvoMod, applyBossScale } from '../data/StatSystem'
+import { getTierBonus, getEvoBonus, applyBossScale } from '../data/StatSystem'
 
 export const POKEMON_LIST: { name: string; dexId: number; type: PokemonType; moves: string[]; capturable?: false }[] = [
   { name: 'Bulbasaur', dexId: 1, type: 'grass', moves: ['Tackle', 'Vine Whip', 'Razor Leaf'] },
@@ -229,11 +229,12 @@ export function createWildPokemon(level: number, dexId?: number, enemyMoves: boo
     ? (POKEMON_LIST.find(p => p.dexId === dexId) || CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)])
     : CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)]
   const bs = BASE_STATS[entry.dexId] || [45, 50, 45, 45]
-  const combinedMod = getTierMod(entry.dexId) * getEvoMod(entry.dexId)
-  const effHp  = Math.round(bs[0] * combinedMod)
-  const effAtk = Math.round(bs[1] * combinedMod)
-  const effDef = Math.round(bs[2] * combinedMod)
-  const effSpd = Math.round(bs[3] * combinedMod)
+  // Additive bonuses — no chained multiplication
+  const flat = getTierBonus(entry.dexId) + getEvoBonus(entry.dexId)
+  const effHp  = bs[0] + Math.round(flat * 0.5)  // HP gets half flat bonus
+  const effAtk = bs[1] + flat
+  const effDef = bs[2] + flat
+  const effSpd = bs[3] + flat
   const maxHp = calcHp(effHp, level)
   const moves = enemyMoves
     ? getMovesForType(entry.type, level)

@@ -9,12 +9,13 @@ export interface LevelUpEvent {
   needsEvoChoice?: boolean
 }
 
+// Single multiplication: base × sqrt(level) scaling
 export function calcStat(base: number, level: number): number {
-  return Math.max(1, Math.round(base * (1 + 0.025 * (level - 1))))
+  return Math.max(1, Math.round(base * Math.sqrt(level) / 7))
 }
 
 export function calcHp(base: number, level: number): number {
-  return Math.max(1, Math.round(base * (1 + 0.025 * (level - 1)) + level))
+  return Math.max(1, Math.round(base * Math.sqrt(level) / 4 + level))
 }
 
 export interface PokemonData {

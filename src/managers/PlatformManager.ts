@@ -125,9 +125,16 @@ export default class PlatformManager {
       iconSprite.setMask(maskShape.createGeometryMask())
       this.maskShapes.push(maskShape)
     } else {
+      const isRandom = node.eventType === PlatformEventType.RANDOM
+      const fontSize = node.eventType === PlatformEventType.BOSS
+        ? (mobile ? 18 : 32)
+        : isRandom ? (mobile ? 20 : 36)
+        : (mobile ? 14 : 24)
       const icon = this.scene.add.text(0, 0, this.getIconForEventType(node.eventType), {
-        font: `bold ${node.eventType === PlatformEventType.BOSS ? (mobile ? 18 : 32) : (mobile ? 14 : 24)}px Arial`,
-        color: visited ? '#888888' : '#ffffff'
+        font: `bold ${fontSize}px Arial`,
+        color: visited ? '#888888' : (isRandom ? '#FFD700' : '#ffffff'),
+        stroke: isRandom ? '#000000' : undefined,
+        strokeThickness: isRandom ? 3 : 0
       }).setOrigin(0.5)
       container.add(icon)
     }
@@ -180,8 +187,7 @@ export default class PlatformManager {
         scale = 1.8
         break
       case PlatformEventType.RANDOM:
-        key = itemSpriteKey('random')
-        scale = 1.8
+        key = undefined
         break
       case PlatformEventType.BOSS: {
         const gkey = gymLeaderSpriteKey(this.bossGymLeaderName)

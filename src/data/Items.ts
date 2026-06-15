@@ -54,7 +54,7 @@ export const RELICS: Item[] = [
 export const ITEMS: Item[] = [...VITAMINS, ...RELICS]
 
 export function getRandomItems(count: number): Item[] {
-  const shuffled = [...ITEMS].sort(() => Math.random() - 0.5)
+  const shuffled = [...RELICS].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, count)
 }
 

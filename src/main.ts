@@ -58,12 +58,17 @@ function applyPortraitCSS(vw: number, vh: number) {
   const S = getPortraitScale(vw, vh)             // target combined scale
   const k = S / P
   game.canvas.style.transformOrigin = 'center center'
-  game.canvas.style.transform = `rotate(-90deg) scale(${k})`
+  game.canvas.style.transform = `rotate(-90deg) scale(${k})`;
+  // updateBounds re-reads getBoundingClientRect (now rotated AABB) so
+  // transformPointer's fakePageX/Y math aligns with actual canvasBounds.
+  // Does NOT fire RESIZE — no loop.
+  (game.scale as any).updateBounds()
 }
 
 function removeCSSTransform() {
   game.canvas.style.transform = ''
-  game.canvas.style.transformOrigin = ''
+  game.canvas.style.transformOrigin = '';
+  (game.scale as any).updateBounds()
 }
 
 function checkOrientation() {
@@ -104,7 +109,14 @@ game.events.once(Phaser.Core.Events.READY, () => {
     return orig(pointer, fakePageX, fakePageY, wasMove)
   }
 
-  window.addEventListener('resize', () => setTimeout(checkOrientation, 100))
+  window.addEventListener('resize', () => setTimeout(() => {
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const portrait = vh > vw
+    isPortrait = portrait
+    if (portrait) applyPortraitCSS(vw, vh)
+    else removeCSSTransform()
+  }, 100))
   window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 200))
   checkOrientation()
 })

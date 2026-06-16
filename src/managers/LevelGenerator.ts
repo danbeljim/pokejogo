@@ -37,6 +37,7 @@ export default class LevelGenerator {
   private dojoGenerated: boolean = false
   private profesorGenerated: boolean = false
   private berryGenerated: boolean = false
+  private merchantGenerated: boolean = false
   private currentWildPool?: number[]
   private currentMapId: number = 0
   private itemPickupCount: number = 0
@@ -140,6 +141,7 @@ export default class LevelGenerator {
     this.dojoGenerated = false
     this.profesorGenerated = false
     this.berryGenerated = false
+    this.merchantGenerated = false
     this.currentWildPool = wildPool
     this.currentMapId = mapId
     this.itemPickupCount = 0
@@ -317,6 +319,7 @@ export default class LevelGenerator {
 
   private pickNonCombat(): PlatformEventType {
     const every3 = this.currentMapId > 0 && this.currentMapId % 3 === 0
+    const every4 = this.currentMapId > 0 && this.currentMapId % 3 === 2
     const r = Math.random()
     if (r < 0.22) return this.tryItemPickup()
     if (r < 0.38) {
@@ -332,7 +335,7 @@ export default class LevelGenerator {
       return this.tryItemPickup()
     }
     if (r < 0.80) return this.tryCapture()
-    if (r < 0.90) return PlatformEventType.MERCHANT
+    if (!this.merchantGenerated && every4) { this.merchantGenerated = true; return PlatformEventType.MERCHANT }
     if (!this.portalGenerated && this.currentMapId >= 5) { this.portalGenerated = true; return PlatformEventType.PORTAL }
     return this.tryItemPickup()
   }

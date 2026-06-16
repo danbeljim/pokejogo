@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { getStarters, spriteKey, spriteUrl } from '../entities/PokemonFactory'
 import { TYPE_COLORS } from '../data/Types'
 import { TRAINER_CLASSES, TrainerClass } from '../data/RoguelikeData'
+import { StarterMenu } from '../ui/StarterMenu'
 
 export interface StartSceneData {
   regionId: number
@@ -14,6 +15,7 @@ export default class StartScene extends Phaser.Scene {
   private gameMode: string = 'normal'
   private starterCards: Phaser.GameObjects.Container[] = []
   private classOverlay?: Phaser.GameObjects.Container
+  private starterMenu?: StarterMenu
 
   constructor() {
     super('StartScene')
@@ -28,113 +30,22 @@ export default class StartScene extends Phaser.Scene {
     }
   }
 
-  preload() {
-    getStarters().forEach(s => {
-      this.load.image(spriteKey(s.dexId, false), spriteUrl(s.dexId, false))
-    })
-    this.load.image('lab-bg', '/assets/locations/laboratorio.png')
-  }
+  preload() {}
 
   create() {
-    const W = this.scale.width
-    const H = this.scale.height
-    const cx = W / 2
-    this.cameras.main.setBackgroundColor('#0a0a1a')
-
-    if (this.textures.exists('lab-bg')) {
-      const bg = this.add.image(cx, H / 2, 'lab-bg')
-      bg.setDisplaySize(W, H)
-      bg.setAlpha(0.35)
-    }
-
-    const titleText = this.gameMode === 'roguelike' ? '◆ PURO ROGUELIKE' : 'POKÉMON ROGUELIKE'
-    const titleColor = this.gameMode === 'roguelike' ? '#ff4444' : '#FFD700'
-
-    this.add.text(cx, H * 0.1, titleText, {
-      font: `bold ${Math.round(H * 0.06)}px Arial`,
-      color: titleColor,
-      stroke: '#000',
-      strokeThickness: 8
-    }).setOrigin(0.5)
-
-    const subtitle = this.gameMode === 'roguelike'
-      ? 'Sin red de seguridad. Sin saves. Permadeath real.'
-      : '8 Gimnasios. 8 Medallas. Una Partida.'
-
-    this.add.text(cx, H * 0.18, subtitle, {
-      font: `${Math.round(H * 0.025)}px Arial`,
-      color: this.gameMode === 'roguelike' ? '#ff8888' : '#cccccc'
-    }).setOrigin(0.5)
-
-    this.add.text(cx, H * 0.27, 'Elige tu inicial:', {
-      font: `${Math.round(H * 0.032)}px Arial`,
-      color: '#ffffff'
-    }).setOrigin(0.5)
-
     const starters = getStarters()
-    const cardW = Math.round(W * 0.11)
-    const cardH = Math.round(H * 0.32)
-    const totalSpread = cardW * starters.length + Math.round(W * 0.04) * (starters.length - 1)
-    const startX = cx - totalSpread / 2 + cardW / 2
-    const gap = cardW + Math.round(W * 0.04)
-    const cardCY = H * 0.58
-
-    this.starterCards = []
-
-    starters.forEach((starter, i) => {
-      const x = startX + i * gap
-      const y = cardCY
-
-      const cardContainer = this.add.container(0, 0)
-
-      const bg = this.add.graphics()
-      bg.fillStyle(0x1a1a2e, 1)
-      bg.lineStyle(3, parseInt(TYPE_COLORS[starter.type].replace('#', '0x')), 1)
-      bg.fillRoundedRect(x - cardW / 2, y - cardH / 2, cardW, cardH, 12)
-      bg.strokeRoundedRect(x - cardW / 2, y - cardH / 2, cardW, cardH, 12)
-      cardContainer.add(bg)
-
-      const sprite = this.add.image(x, y - cardH * 0.2, spriteKey(starter.dexId, false))
-      sprite.setDisplaySize(100, 100)
-      cardContainer.add(sprite)
-
-      const nameTxt = this.add.text(x, y + cardH * 0.22, starter.name, {
-        font: `bold ${Math.round(H * 0.025)}px Arial`,
-        color: '#ffffff'
-      }).setOrigin(0.5)
-      cardContainer.add(nameTxt)
-
-      const typeTxt = this.add.text(x, y + cardH * 0.32, `[${starter.type.toUpperCase()}]`, {
-        font: `${Math.round(H * 0.02)}px Arial`,
-        color: TYPE_COLORS[starter.type]
-      }).setOrigin(0.5)
-      cardContainer.add(typeTxt)
-
-      const btn = this.add.text(x, y + cardH * 0.42, '[Elegir]', {
-        font: `bold ${Math.round(H * 0.022)}px Arial`,
-        color: '#FFD700',
-        backgroundColor: '#222',
-        padding: { x: 18, y: 10 }
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true })
-
-      btn.on('pointerover', () => btn.setColor('#ffffff'))
-      btn.on('pointerout', () => btn.setColor('#FFD700'))
-      btn.on('pointerdown', () => {
-        if (this.gameMode === 'roguelike') {
-          this.showClassPicker(starter.dexId)
-        } else {
-          this.scene.start('GameScene', { starterDexId: starter.dexId, newGame: this.newGame })
-        }
-      })
-      cardContainer.add(btn)
-
-      this.starterCards.push(cardContainer)
+    this.starterMenu = new StarterMenu(starters, (dexId) => {
+      if (this.starterMenu) { this.starterMenu.remove(); this.starterMenu = undefined }
+      if (this.gameMode === 'roguelike') {
+        this.showClassPicker(dexId)
+      } else {
+        this.scene.start('GameScene', { starterDexId: dexId, newGame: this.newGame })
+      }
     })
+  }
 
-    this.add.text(cx, H * 0.93, 'Pulsa los nodos para avanzar. ¡Derrota a 8 líderes para ganar!', {
-      font: `${Math.round(H * 0.018)}px Arial`,
-      color: '#888888'
-    }).setOrigin(0.5)
+  shutdown() {
+    if (this.starterMenu) { this.starterMenu.remove(); this.starterMenu = undefined }
   }
 
   private showClassPicker(starterDexId: number) {
@@ -169,7 +80,7 @@ export default class StartScene extends Phaser.Scene {
     const totalSpread = cardW * TRAINER_CLASSES.length + Math.round(W * 0.025) * (TRAINER_CLASSES.length - 1)
     const startX = cx - totalSpread / 2 + cardW / 2
     const gap = cardW + Math.round(W * 0.025)
-    const cardCY = H * 0.58
+    const cardCY = H * 0.52
 
     TRAINER_CLASSES.forEach((cls: TrainerClass, i: number) => {
       const x = startX + i * gap

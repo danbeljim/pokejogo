@@ -1,0 +1,225 @@
+.starter-menu {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, #78b8f8 0%, #a8d8f8 55%, #b0e0a0 55%, #88c870 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  font-family: 'Press Start 2P', cursive;
+  image-rendering: pixelated;
+}
+
+.starter-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(14px, 2.5vw, 26px);
+  color: #FFD700;
+  text-shadow: 3px 3px 0 #8b6000, -1px -1px 0 #8b6000, 1px -1px 0 #8b6000, -1px 1px 0 #8b6000;
+  margin-bottom: 24px;
+  letter-spacing: 2px;
+}
+
+.starter-grid {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 0 16px;
+}
+
+/* ── Card ── */
+.starter-card {
+  background: #e8dfc8;
+  border: 3px solid #2c2c2c;
+  box-shadow: 4px 4px 0 #2c2c2c;
+  width: clamp(200px, 17vw, 260px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 14px 18px;
+  position: relative;
+  image-rendering: pixelated;
+  cursor: default;
+}
+
+/* pokeball corner icon */
+.sc-pokeball {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #2c2c2c;
+  overflow: hidden;
+}
+.sc-pokeball-top { height: 50%; background: #e83030; }
+.sc-pokeball-bot { height: 50%; background: #f8f8f8; }
+.sc-pokeball-mid {
+  position: absolute;
+  top: 50%;
+  left: 0; right: 0;
+  height: 2px;
+  background: #2c2c2c;
+  transform: translateY(-50%);
+}
+.sc-pokeball-btn {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  border: 2px solid #2c2c2c;
+  background: #f8f8f8;
+}
+
+/* sprite */
+.sc-sprite-wrap {
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  image-rendering: pixelated;
+}
+.sc-sprite {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* name / level */
+.sc-name {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(9px, 1.1vw, 13px);
+  color: #1a1a1a;
+  margin-top: 6px;
+  text-align: center;
+}
+.sc-level {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(8px, 0.9vw, 11px);
+  color: #555;
+  margin-top: 2px;
+}
+
+/* type badge */
+.sc-type-badge {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(7px, 0.8vw, 9px);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-top: 6px;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
+  letter-spacing: 1px;
+}
+
+/* stats */
+.sc-stats {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sc-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sc-stat-label {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(7px, 0.7vw, 9px);
+  color: #444;
+  width: 24px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.sc-stat-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: #333;
+  border-radius: 1px;
+  overflow: hidden;
+}
+.sc-stat-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f8d030, #f89000);
+  border-radius: 1px;
+}
+.sc-stat-val {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(7px, 0.7vw, 9px);
+  color: #222;
+  width: 16px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+
+/* move */
+.sc-move-box {
+  width: 100%;
+  background: #d8ceb8;
+  border: 2px solid #2c2c2c;
+  margin-top: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sc-move-name {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(7px, 0.8vw, 10px);
+  color: #1a1a1a;
+  text-align: center;
+}
+.sc-move-tags {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.sc-move-cat, .sc-move-type {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(8px, 0.85vw, 11px);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 3px;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.35);
+}
+.sc-move-pwr {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(6px, 0.6vw, 8px);
+  color: #444;
+  text-align: center;
+}
+
+/* button */
+.sc-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: clamp(8px, 0.9vw, 11px);
+  color: #1a1a1a;
+  background: #f8f8a8;
+  border: 2px solid #2c2c2c;
+  box-shadow: 2px 2px 0 #2c2c2c;
+  padding: 6px 14px;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background 0.1s, transform 0.1s;
+  letter-spacing: 1px;
+}
+.sc-btn:hover {
+  background: #ffffd0;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #2c2c2c;
+}
+.sc-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #2c2c2c;
+}

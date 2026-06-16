@@ -18,8 +18,11 @@ export class PokedexMenu {
   private render() {
     this.container.innerHTML = `
       <div class="pokedex">
-        <!-- Slots clicables -->
-        <div class="pokedex-slots" id="slots-container"></div>
+        <!-- World map center -->
+        <div class="pokedex-map-wrap">
+          <img src="/assets/locations/mapa.jpeg" class="pokedex-map-img" draggable="false" />
+          <div class="pokedex-map-zone" id="kanto-zone" title="Kanto"></div>
+        </div>
 
         <!-- Right side info -->
         <div class="pokedex-info">
@@ -32,8 +35,16 @@ export class PokedexMenu {
       </div>
     `
 
-    this.renderSlots()
+    this.setupMapZone()
     document.body.appendChild(this.container)
+  }
+
+  private setupMapZone() {
+    const zone = this.container.querySelector('#kanto-zone') as HTMLElement
+    if (!zone) return
+    zone.addEventListener('click', () => {
+      setTimeout(() => this.onSelect(1), 150)
+    })
   }
 
   private renderSlots() {

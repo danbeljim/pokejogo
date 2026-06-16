@@ -45,7 +45,7 @@ export default class ProfessorScene extends Phaser.Scene {
     wrap.innerHTML = ''
 
     const title = document.createElement('h2')
-    title.textContent = '🔬 Laboratorio del Profesor'
+    title.textContent = '🔬 Laboratorio del Científico'
     title.style.cssText = 'color:#00BCD4; margin-bottom:8px; font-size:clamp(15px,4vw,24px); text-align:center; margin-top:20px;'
     wrap.appendChild(title)
 

@@ -2,6 +2,7 @@ import { Pokemon, calcStat, calcHp } from './Pokemon'
 import { PokemonType } from '../data/Types'
 import { getMovesForType } from '../data/Moves'
 import { getTierBonus, getEvoBonus, applyBossScale } from '../data/StatSystem'
+import { getBaseStats } from '../data/StatLoader'
 
 export const POKEMON_LIST: { name: string; dexId: number; type: PokemonType; moves: string[]; capturable?: false }[] = [
   { name: 'Bulbasaur', dexId: 1, type: 'grass', moves: ['Tackle', 'Vine Whip', 'Razor Leaf'] },
@@ -106,103 +107,6 @@ export const POKEMON_LIST: { name: string; dexId: number; type: PokemonType; mov
   { name: 'Rhydon',     dexId: 112, type: 'ground',  moves: ['Horn Attack', 'Stomp', 'Rock Blast'],     capturable: false },
 ]
 
-// Real Gen 1 base stats: [HP, ATK, DEF, SPD]
-const BASE_STATS: Record<number, [number, number, number, number]> = {
-  1:   [45,  49,  49,  45],
-  4:   [39,  52,  43,  65],
-  7:   [44,  48,  65,  43],
-  25:  [35,  55,  40,  90],
-  26:  [60,  90,  55, 110],
-  16:  [40,  45,  40,  56],
-  19:  [30,  56,  35,  72],
-  21:  [40,  60,  30,  70],
-  27:  [50,  75,  85,  40],
-  31:  [90,  82,  87,  76],
-  34:  [81,  92,  77,  85],
-  41:  [40,  45,  35,  55],
-  45:  [75,  80,  85,  50],
-  49:  [70,  65,  60,  90],
-  50:  [10,  55,  25,  95],
-  51:  [35, 100,  50, 120],
-  54:  [50,  52,  48,  55],
-  58:  [55,  70,  45,  60],
-  59:  [90, 110,  80,  95],
-  60:  [40,  50,  40,  90],
-  63:  [25,  20,  15,  90],
-  64:  [40,  35,  30, 105],
-  65:  [55,  50,  45, 120],
-  66:  [70,  80,  50,  35],
-  71:  [80, 105,  65,  70],
-  72:  [40,  40,  35,  70],
-  74:  [40,  80, 100,  20],
-  77:  [50,  85,  55,  90],
-  78:  [65, 100,  70, 105],
-  83:  [52,  65,  55,  60],
-  84:  [35,  85,  45,  75],
-  89:  [105,105,  75,  50],
-  92:  [30,  35,  30,  80],
-  93:  [45,  50,  45,  95],
-  94:  [60,  65,  60, 110],
-  105: [60,  80, 110,  45],
-  95:  [35,  45, 160,  70],
-  100: [40,  30,  50, 100],
-  104: [50,  50,  95,  35],
-  109: [40,  65,  95,  35],
-  110: [65,  90, 120,  60],
-  111: [80,  85,  95,  25],
-  112: [105,130, 120,  40],
-  114: [65,  55, 115,  60],
-  116: [30,  40,  70,  60],
-  118: [45,  67,  60,  63],
-  120: [30,  45,  55,  85],
-  121: [60,  75,  85, 115],
-  122: [40,  45,  65,  90],
-  129: [20,  10,  55,  80],
-  133: [55,  55,  50,  55],
-  138: [35,  40, 100,  35],
-  140: [30,  80,  90,  55],
-  142: [80, 105,  65, 130],
-  143: [160, 110,  65,  30],
-  147: [41,  64,  45,  50],
-  // Kanto wild extras
-  10:  [45,  30,  35,  45],
-  11:  [50,  20,  55,  30],
-  13:  [40,  35,  30,  50],
-  14:  [45,  25,  50,  35],
-  17:  [63,  60,  55,  71],
-  22:  [65,  90,  65, 100],
-  23:  [35,  60,  44,  55],
-  28:  [75, 100, 110,  65],
-  29:  [55,  47,  52,  41],
-  30:  [70,  62,  67,  56],
-  32:  [46,  57,  40,  50],
-  33:  [61,  72,  57,  65],
-  35:  [70,  45,  48,  35],
-  37:  [38,  41,  40,  65],
-  39: [115,  45,  20,  20],
-  42:  [75,  80,  70,  90],
-  43:  [45,  50,  55,  30],
-  46:  [35,  70,  55,  25],
-  47:  [60,  95,  80,  30],
-  48:  [60,  55,  50,  45],
-  52:  [40,  45,  35,  90],
-  56:  [40,  80,  35,  70],
-  67:  [80, 100,  70,  45],
-  69:  [50,  75,  35,  40],
-  73:  [80,  70,  65, 100],
-  75:  [55,  95, 115,  35],
-  81:  [25,  35,  70,  45],
-  88:  [80,  80,  50,  25],
-  90:  [30,  65, 100,  40],
-  96:  [60,  48,  45,  42],
-  101: [60,  50,  70, 140],
-  102: [60,  40,  80,  40],
-  115: [105, 95,  80,  90],
-  123: [70, 110,  80, 105],
-  126: [65,  95,  57,  93],
-  127: [65, 125, 100,  85],
-  128: [75, 100,  95, 110],
-}
 
 
 const STARTERS = POKEMON_LIST.slice(0, 4)
@@ -211,7 +115,7 @@ const CAPTURABLE_POKEMON = POKEMON_LIST.filter(p => p.capturable !== false)
 export function spriteUrl(dexId: number, back: boolean = false): string {
   return back
     ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${dexId}.png`
-    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${dexId}.png`
+    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dexId}.png`
 }
 
 export function spriteKey(dexId: number, back: boolean = false): string {
@@ -228,7 +132,7 @@ export function createWildPokemon(level: number, dexId?: number, enemyMoves: boo
   const entry = dexId
     ? (POKEMON_LIST.find(p => p.dexId === dexId) || CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)])
     : CAPTURABLE_POKEMON[Math.floor(Math.random() * CAPTURABLE_POKEMON.length)]
-  const bs = BASE_STATS[entry.dexId] || [45, 50, 45, 45]
+  const bs = getBaseStats(entry.dexId)
   // Flat bonus applied AFTER level scaling — truly additive, never multiplied
   const statBonus = getTierBonus(entry.dexId) + getEvoBonus(entry.dexId)
   const maxHp = calcHp(bs[0], level) + Math.round(statBonus * 0.5)

@@ -34,6 +34,7 @@ export default class PlatformManager {
       ['baya-icon',       '/assets/random/baya.png'],
       ['gemelas-icon',    '/assets/random/gemelas.png'],
       ['legendarios-icon','/assets/random/legendarios.jpg'],
+      ['inicio-icon',     '/assets/locations/inicio.png'],
     ]
     const missing = NODE_ASSETS.filter(([k]) => !this.scene.textures.exists(k))
     if (missing.length > 0) {
@@ -106,66 +107,66 @@ export default class PlatformManager {
     const isCurrent = node.id === this.currentNodeId
     const isClickable = this.isClickable(node)
     const visited = node.visited && !isCurrent
-    const color = this.getColorForEventType(node.eventType)
     const mobile = this.scene.scale.width < 1000
-    const radius = node.eventType === PlatformEventType.BOSS
-      ? (mobile ? 22 : 48)
-      : (mobile ? 16 : 38)
+    const isBoss = node.eventType === PlatformEventType.BOSS
+    const isStart = node.id === this.map.startNodeId
+    const spriteSize = isBoss ? (mobile ? 52 : 96) : isStart ? (mobile ? 44 : 80) : (mobile ? 36 : 68)
 
     const container = this.scene.add.container(node.x, node.y)
     container.setDepth(2)
 
-    // Outer ring for current / clickable
+    // Shadow under sprite
+    const shadow = this.scene.add.graphics()
+    shadow.fillStyle(0x000000, 0.25)
+    shadow.fillEllipse(0, spriteSize * 0.42, spriteSize * 0.85, spriteSize * 0.22)
+    container.add(shadow)
+
+    // Glow ring for current / clickable
     if (isCurrent) {
       const ring = this.scene.add.graphics()
-      ring.lineStyle(4, 0xFFFFFF, 1)
-      ring.strokeCircle(0, 0, radius + 6)
+      ring.lineStyle(mobile ? 3 : 5, 0xFFFFFF, 0.9)
+      ring.strokeCircle(0, 0, spriteSize * 0.56)
       container.add(ring)
     } else if (isClickable) {
       const ring = this.scene.add.graphics()
-      ring.lineStyle(3, 0xFFFF00, 1)
-      ring.strokeCircle(0, 0, radius + 5)
+      ring.lineStyle(mobile ? 2 : 4, 0xFFD700, 0.85)
+      ring.strokeCircle(0, 0, spriteSize * 0.54)
       container.add(ring)
     }
 
-    // Circle background
-    const circle = this.scene.add.graphics()
-    circle.fillStyle(color, visited ? 0.4 : 1)
-    circle.fillCircle(0, 0, radius)
-    circle.lineStyle(2, 0x000000, 1)
-    circle.strokeCircle(0, 0, radius)
-    container.add(circle)
-
-    // Sprite inside circle with mask
+    // Sprite / icon
     const iconSprite = this.makeNodeIcon(node)
     if (iconSprite) {
-      const isStart = this.map && node.id === this.map.startNodeId
-      const spriteSize = isStart ? radius * 3.2 : radius * 2 - 6
       iconSprite.setDisplaySize(spriteSize, spriteSize)
-      if (visited) iconSprite.setAlpha(0.5)
+      if (visited) iconSprite.setAlpha(0.38)
+      else if (isClickable) iconSprite.setAlpha(1)
+      else if (!isCurrent) iconSprite.setAlpha(0.7)
       container.add(iconSprite)
-
-      const maskShape = this.scene.make.graphics({ x: node.x, y: node.y }, false)
-      maskShape.fillStyle(0xffffff)
-      maskShape.fillCircle(0, 0, radius - 1)
-      iconSprite.setMask(maskShape.createGeometryMask())
-      this.maskShapes.push(maskShape)
     } else {
+      // ? or fallback text
       const isRandom = node.eventType === PlatformEventType.RANDOM
-      const fontSize = node.eventType === PlatformEventType.BOSS
-        ? (mobile ? 18 : 32)
-        : isRandom ? (mobile ? 20 : 36)
-        : (mobile ? 14 : 24)
+      const fontSize = isBoss ? (mobile ? 22 : 40) : (mobile ? 18 : 32)
+      const bg = this.scene.add.graphics()
+      bg.fillStyle(0x000000, visited ? 0.25 : 0.55)
+      bg.fillRoundedRect(-spriteSize * 0.4, -spriteSize * 0.4, spriteSize * 0.8, spriteSize * 0.8, 8)
+      if (!visited) {
+        bg.lineStyle(2, isRandom ? 0xFFD700 : 0xffffff, 0.7)
+        bg.strokeRoundedRect(-spriteSize * 0.4, -spriteSize * 0.4, spriteSize * 0.8, spriteSize * 0.8, 8)
+      }
+      container.add(bg)
       const icon = this.scene.add.text(0, 0, this.getIconForEventType(node.eventType), {
-        font: `bold ${fontSize}px Arial`,
-        color: visited ? '#888888' : (isRandom ? '#FFD700' : '#ffffff'),
-        stroke: isRandom ? '#000000' : undefined,
-        strokeThickness: isRandom ? 3 : 0
+        fontFamily: '"Press Start 2P"',
+        fontSize: `${fontSize}px`,
+        color: visited ? '#666666' : (isRandom ? '#FFD700' : '#ffffff'),
+        stroke: '#000000',
+        strokeThickness: 3
       }).setOrigin(0.5)
+      if (visited) icon.setAlpha(0.4)
       container.add(icon)
     }
 
-    container.setSize((radius + 6) * 2, (radius + 6) * 2)
+    const hitR = spriteSize * 0.56
+    container.setSize(hitR * 2, hitR * 2)
     container.setInteractive({ useHandCursor: isClickable })
     if (isClickable) {
       container.on('pointerdown', () => {
@@ -174,11 +175,11 @@ export default class PlatformManager {
       })
     }
     container.on('pointerover', () => {
-      circle.setScale(1.12)
+      if (!visited) container.setScale(1.1)
       this.showNodeTooltip(node)
     })
     container.on('pointerout', () => {
-      circle.setScale(1.0)
+      container.setScale(1.0)
       this.hideNodeTooltip()
     })
 
@@ -189,9 +190,9 @@ export default class PlatformManager {
     let key: string | undefined
     let scale = 1.5
 
-    // Start node gets home icon
+    // Start node gets inicio icon
     if (this.map && node.id === this.map.startNodeId) {
-      key = 'home-icon'
+      key = 'inicio-icon'
       scale = 1.5
     }
 
@@ -263,18 +264,26 @@ export default class PlatformManager {
     return undefined
   }
 
-  private drawDashedLine(x1: number, y1: number, x2: number, y2: number, color: number, alpha: number) {
+  private drawDashedLine(x1: number, y1: number, x2: number, y2: number, _color: number, _alpha: number) {
     if (!this.linesGraphics) return
+    const mobile = this.scene.scale.width < 1000
+    const dashLen = mobile ? 6 : 8
+    const gapLen  = mobile ? 6 : 8
+    const lw      = mobile ? 1.5 : 2
     const dx = x2 - x1
     const dy = y2 - y1
     const dist = Math.sqrt(dx * dx + dy * dy)
-    const step = 10
-    this.linesGraphics.fillStyle(color, alpha)
-    let traveled = 0
-    while (traveled <= dist) {
-      const t = traveled / dist
-      this.linesGraphics.fillCircle(x1 + dx * t, y1 + dy * t, 2.5)
-      traveled += step
+    const nx = dx / dist
+    const ny = dy / dist
+    this.linesGraphics.lineStyle(lw, 0xffffff, 0.28)
+    let t = 0
+    while (t < dist) {
+      const tEnd = Math.min(t + dashLen, dist)
+      this.linesGraphics.beginPath()
+      this.linesGraphics.moveTo(x1 + nx * t,    y1 + ny * t)
+      this.linesGraphics.lineTo(x1 + nx * tEnd, y1 + ny * tEnd)
+      this.linesGraphics.strokePath()
+      t += dashLen + gapLen
     }
   }
 
@@ -359,7 +368,7 @@ export default class PlatformManager {
       case PlatformEventType.DOJO:
         return ['DOJO', '🥋 Entrena duro.\nElige una mejora\npermanente de stats.']
       case PlatformEventType.PROFESSOR:
-        return ['PROFESOR', '🔬 Aprende movimiento,\nevolucion instantanea\no cambio de Pokemon.']
+        return ['CIENTÍFICO', '🔬 Aprende movimiento,\nevolucion instantanea\no cambio de Pokemon.']
       case PlatformEventType.PORTAL:
         return ['PORTAL EXTRAÑO', '✨ Una dimension\nextraña. Pokemon\nlegendario te aguarda.']
       default:
@@ -429,6 +438,11 @@ export default class PlatformManager {
       this.tooltip.destroy()
       this.tooltip = undefined
     }
+  }
+
+  setMapVisible(visible: boolean) {
+    this.nodeGraphics.forEach(c => c.setVisible(visible))
+    if (this.linesGraphics) this.linesGraphics.setVisible(visible)
   }
 
   clearMap() {

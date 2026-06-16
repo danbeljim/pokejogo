@@ -174,7 +174,7 @@ body {
 /* Right side info */
 .pokedex-info {
   position: absolute;
-  right: 80px;
+  right: 30px;
   top: 50%;
   transform: translateY(-50%);
   text-align: center;
@@ -197,6 +197,7 @@ body {
   color: #FF9500;
   line-height: 1.6;
   font-weight: 400;
+  margin-top: 60px;
 }
 
 /* Roguelike slot */
@@ -230,6 +231,70 @@ body {
 .pokedex-slot.roguelike-slot.active {
   background: #3a0a0a;
   border-color: #ff4444;
+}
+
+/* World map */
+.pokedex-map-wrap {
+  position: absolute;
+  left: 40px;
+  right: 320px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  border: 4px solid #333;
+  box-shadow: 0 0 20px rgba(0,0,0,0.6);
+  overflow: hidden;
+  image-rendering: pixelated;
+}
+
+.pokedex-map-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pokedex-map-zone {
+  position: absolute;
+  /* coords relativas al mapa — ajustar xPct/yPct/wPct/hPct */
+  left: 61%;
+  top: 38%;
+  width: 9%;
+  height: 12%;
+  cursor: pointer;
+  border: 2px solid #FFD700;
+  box-shadow: 0 0 8px #FFD700, inset 0 0 8px rgba(255,215,0,0.15);
+  animation: kanto-pulse 1.4s ease-in-out infinite;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pokedex-map-zone::after {
+  content: 'KANTO';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 10px;
+  color: #FFD700;
+  white-space: nowrap;
+  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  letter-spacing: 2px;
+  font-weight: 900;
+  margin-bottom: 6px;
+  pointer-events: none;
+}
+
+.pokedex-map-zone:hover {
+  border-color: #ffffff;
+  box-shadow: 0 0 14px #ffffff, inset 0 0 10px rgba(255,255,255,0.2);
+}
+
+@keyframes kanto-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Banda negra pie */

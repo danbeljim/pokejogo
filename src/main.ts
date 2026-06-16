@@ -1,4 +1,6 @@
 import Phaser from 'phaser'
+import { loadAllBaseStats } from './data/StatLoader'
+import { POKEMON_LIST } from './entities/PokemonFactory'
 import MainMenuScene from './scenes/MainMenuScene'
 import GameScene from './scenes/GameScene'
 import BattleScene from './scenes/BattleScene'
@@ -12,6 +14,7 @@ import BerryTreeScene from './scenes/BerryTreeScene'
 import DojoScene from './scenes/DojoScene'
 import ProfessorScene from './scenes/ProfessorScene'
 import EvoPickerScene from './scenes/EvoPickerScene'
+import WorldMapScene from './scenes/WorldMapScene'
 
 const isMobile = window.innerWidth < 1024 || window.innerHeight < 600
 export const GAME_W = isMobile ? 800 : 1600
@@ -19,12 +22,14 @@ export const GAME_H = isMobile ? 500 : 1000
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
+  parent: 'game-container',
   width: GAME_W,
   height: GAME_H,
-  backgroundColor: '#000000',
+  backgroundColor: '#1a3a1a',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    parent: 'game-container',
     width: GAME_W,
     height: GAME_H,
   },
@@ -44,7 +49,11 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [MainMenuScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene, BerryTreeScene, DojoScene, ProfessorScene, EvoPickerScene]
+  scene: [MainMenuScene, WorldMapScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene, BerryTreeScene, DojoScene, ProfessorScene, EvoPickerScene]
 }
 
 new Phaser.Game(config)
+
+// Fire-and-forget: fetch real base stats from PokéAPI in background.
+// Falls back to hardcoded values until fetch completes (no blocking).
+loadAllBaseStats(POKEMON_LIST.map(p => p.dexId))

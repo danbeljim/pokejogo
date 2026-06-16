@@ -102,6 +102,9 @@ export default class MainMenuScene extends Phaser.Scene {
       this.pokedexMenu.remove()
       this.pokedexMenu = null
     }
+    if (this.scene.isActive('WorldMapScene')) {
+      this.scene.stop('WorldMapScene')
+    }
   }
 
   private selectRegion(regionId: number) {

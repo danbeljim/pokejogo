@@ -29,7 +29,7 @@ export default class MapManager {
       difficulty: 1, platformCount: 8, bossMaxLevel: 14, wildMinLevel: 3, wildMaxLevel: 6,
       signaturePokemonDexId: 95,
       bgColor: '#5a3a1a', accentColor: '#B8A038', themeName: 'Ciudad Plateada - Montañas Rocosas',
-      routeName: 'Ruta 2', locationBgUrl: '/assets/locations/map-1-pewter.png',
+      routeName: 'Ruta 2', locationBgUrl: '/assets/locations/bosque_verde.png',
       wildPool: [16, 19, 10, 11, 13, 14, 21, 29, 32, 25, 56]
     },
     {

@@ -1,15 +1,16 @@
-import { REGIONS } from '../data/Regions'
 import './PokedexMenu.css'
 
 export class PokedexMenu {
   private container: HTMLElement
-  private selectedIdx: number = 0
   private onSelect: (regionId: number) => void
-  private onRoguelike?: () => void
+  private mapScale: number = 1
+  private readonly MIN_SCALE = 1
+  private readonly MAX_SCALE = 3
+  private mapOffsetX: number = 0
+  private mapOffsetY: number = 0
 
   constructor(onSelect: (regionId: number) => void, onRoguelike?: () => void) {
     this.onSelect = onSelect
-    this.onRoguelike = onRoguelike
     this.container = document.createElement('div')
     this.container.className = 'pokedex-container'
     this.render()
@@ -20,15 +21,17 @@ export class PokedexMenu {
       <div class="pokedex">
         <!-- World map center -->
         <div class="pokedex-map-wrap">
-          <img src="/assets/locations/mapa.jpeg" class="pokedex-map-img" draggable="false" />
-          <div class="pokedex-map-zone" id="kanto-zone" title="Kanto"></div>
+          <div class="pokedex-map-inner">
+            <img src="/assets/locations/mapa.jpeg" class="pokedex-map-img" draggable="false" />
+            <div class="pokedex-map-zone" id="kanto-zone" title="Kanto"></div>
+          </div>
         </div>
 
-        <!-- Right side info -->
-        <div class="pokedex-info">
-          <div class="pokedex-title">POKÉMON<br>ROGUELIKE</div>
-          <div class="pokedex-creator">creado por:<br>andrescalzadodev</div>
-        </div>
+        <!-- Title -->
+        <div class="pokedex-title">POKÉMON<br>ROGUELIKE</div>
+
+        <!-- Creator -->
+        <div class="pokedex-creator">creado por:<br>andrescalzadodev</div>
 
         <!-- Footer -->
         <div class="pokedex-footer"></div>
@@ -41,63 +44,54 @@ export class PokedexMenu {
 
   private setupMapZone() {
     const zone = this.container.querySelector('#kanto-zone') as HTMLElement
-    if (!zone) return
+    const wrap = this.container.querySelector('.pokedex-map-wrap') as HTMLElement
+    const inner = this.container.querySelector('.pokedex-map-inner') as HTMLElement
+    if (!zone || !wrap || !inner) return
+
     zone.addEventListener('click', () => {
       setTimeout(() => this.onSelect(1), 150)
     })
-  }
 
-  private renderSlots() {
-    const slotsContainer = this.container.querySelector('#slots-container')!
+    wrap.addEventListener('wheel', (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY < 0 ? 0.1 : -0.1
+      this.mapScale = Math.min(this.MAX_SCALE, Math.max(this.MIN_SCALE, this.mapScale + delta))
+      if (this.mapScale === this.MIN_SCALE) { this.mapOffsetX = 0; this.mapOffsetY = 0 }
+      this.applyMapTransform(inner)
+    }, { passive: false })
 
-    for (let i = 0; i < 5; i++) {
-      const region = REGIONS[i]
-      const slot = document.createElement('div')
-      slot.className = `pokedex-slot ${i === this.selectedIdx && region ? 'active' : ''}`
-      slot.innerHTML = `<span class="pokedex-slot-text">${region?.name || ''}</span>`
+    let dragging = false
+    let startX = 0, startY = 0
 
-      if (region) {
-        slot.style.cursor = 'pointer'
-        slot.addEventListener('click', () => {
-          this.selectSlot(i, region.id)
-        })
-
-        slot.addEventListener('mouseenter', () => {
-          slot.classList.add('hover')
-        })
-
-        slot.addEventListener('mouseleave', () => {
-          slot.classList.remove('hover')
-        })
-      }
-
-      slotsContainer.appendChild(slot)
-    }
-
-    // Roguelike mode slot (WIP - disabled)
-    const rlSlot = document.createElement('div')
-    rlSlot.className = 'pokedex-slot roguelike-slot roguelike-disabled'
-    rlSlot.innerHTML = `<span class="pokedex-slot-text">◆ PURO ROGUELIKE<br><small>próximamente</small></span>`
-    rlSlot.style.cursor = 'not-allowed'
-    slotsContainer.appendChild(rlSlot)
-  }
-
-  private selectSlot(idx: number, regionId: number) {
-    this.selectedIdx = idx
-    this.updateSlotStyles()
-    // Pequeño delay para feedback visual
-    setTimeout(() => this.onSelect(regionId), 200)
-  }
-
-  private updateSlotStyles() {
-    const slots = this.container.querySelectorAll('.pokedex-slot')
-    slots.forEach((slot, i) => {
-      if (i === this.selectedIdx) {
-        slot.classList.add('active')
-      } else {
-        slot.classList.remove('active')
-      }
+    wrap.addEventListener('mousedown', (e: MouseEvent) => {
+      if (this.mapScale <= this.MIN_SCALE) return
+      dragging = true
+      startX = e.clientX - this.mapOffsetX
+      startY = e.clientY - this.mapOffsetY
+      wrap.style.cursor = 'grabbing'
     })
+
+    window.addEventListener('mousemove', (e: MouseEvent) => {
+      if (!dragging) return
+      this.mapOffsetX = e.clientX - startX
+      this.mapOffsetY = e.clientY - startY
+      this.applyMapTransform(inner)
+    })
+
+    window.addEventListener('mouseup', () => {
+      dragging = false
+      wrap.style.cursor = this.mapScale > this.MIN_SCALE ? 'grab' : 'default'
+    })
+  }
+
+
+  private applyMapTransform(inner: HTMLElement) {
+    const maxX = (inner.clientWidth * (this.mapScale - 1)) / 2
+    const maxY = (inner.clientHeight * (this.mapScale - 1)) / 2
+    this.mapOffsetX = Math.min(maxX, Math.max(-maxX, this.mapOffsetX))
+    this.mapOffsetY = Math.min(maxY, Math.max(-maxY, this.mapOffsetY))
+    inner.style.transformOrigin = 'center center'
+    inner.style.transform = `scale(${this.mapScale}) translate(${this.mapOffsetX / this.mapScale}px, ${this.mapOffsetY / this.mapScale}px)`
   }
 
   public remove() {

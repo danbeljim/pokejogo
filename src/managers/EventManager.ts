@@ -25,6 +25,7 @@ export interface EventResult {
   requiresPortal?: boolean
   portalPokemon?: Pokemon
   isDouble?: boolean
+  requiresMerchant?: boolean
 }
 
 export default class EventManager {
@@ -64,13 +65,18 @@ export default class EventManager {
         return { type: PlatformEventType.PROFESSOR, message: '¡El Científico te espera!', requiresProfessor: true }
       case PlatformEventType.PORTAL:
         return this.preparePortalBattle(playerTeam)
+      case PlatformEventType.MERCHANT:
+        return { type: PlatformEventType.MERCHANT, message: '¡Un mercader ambulante!', requiresMerchant: true }
       default:
         return { type: PlatformEventType.POKEMON_CAPTURE, message: 'Unknown' }
     }
   }
 
   private handleCapture(_platform: MapNode, playerTeam: Pokemon[], wildMin: number, wildMax: number, ghostOnly: boolean = false): EventResult {
-    const level = wildMin + Math.floor(Math.random() * (wildMax - wildMin + 1))
+    const playerMax = Math.max(...playerTeam.map(p => p.level), 1)
+    const capLevel = Math.max(1, playerMax - 1)
+    const rawLevel = wildMin + Math.floor(Math.random() * (wildMax - wildMin + 1))
+    const level = Math.min(rawLevel, capLevel)
     const opts: Pokemon[] = []
     const seen = new Set<number>()
     const GHOST_IDS = [92, 92, 93]

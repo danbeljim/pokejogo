@@ -172,7 +172,9 @@ export default class RandomPickerScene extends Phaser.Scene {
     }
 
     const difficulty = this.pickerData.difficulty
-    const level = Math.max(3, difficulty * 3 + Math.floor(Math.random() * 4))
+    const playerMax = Math.max(...this.pickerData.playerTeam.map(p => p.level), 1)
+    const rawLevel = Math.max(3, difficulty * 3 + Math.floor(Math.random() * 4))
+    const level = Math.min(rawLevel, playerMax - 1)
     const pool = POKEMON_LIST.filter(p => method.types.includes(p.type) && (difficulty >= 4 || p.capturable === undefined))
     const seen = new Set<number>()
     const opts: Pokemon[] = []

@@ -1,6 +1,6 @@
 import { Pokemon } from '../entities/Pokemon'
 
-export type ItemCategory = 'vitamin' | 'relic' | 'berry'
+export type ItemCategory = 'vitamin' | 'relic' | 'berry' | 'consumable'
 export type RelicEffect = 'leftovers' | 'life_orb' | 'focus_sash' | 'choice_band'
 
 export interface Item {
@@ -57,6 +57,35 @@ export const RELICS: Item[] = [
     bonus: {}
   },
 ]
+
+export const CONSUMABLES: Item[] = [
+  { id: 'potion',       name: 'Poción',        description: 'Restaura 50% HP a todo el equipo',  category: 'consumable' },
+  { id: 'super_potion', name: 'Superpoción',   description: 'Restaura HP completo al equipo',    category: 'consumable' },
+  { id: 'rare_candy',   name: 'Caramelo Raro', description: 'Sube 3 niveles a un Pokémon',       category: 'consumable' },
+  { id: 'revive',       name: 'Revivir',       description: 'Revive un Pokémon debilitado (50% HP)', category: 'consumable' },
+]
+
+export function applyConsumable(item: Item, team: Pokemon[], targetIdx?: number): string {
+  if (item.id === 'potion') {
+    team.forEach(p => { if (p.isAlive()) p.heal(Math.floor(p.maxHp * 0.5)) })
+    return '¡50% HP restaurado al equipo!'
+  }
+  if (item.id === 'super_potion') {
+    team.forEach(p => { if (p.isAlive()) p.heal(p.maxHp) })
+    return '¡HP completo restaurado al equipo!'
+  }
+  if (item.id === 'rare_candy' && targetIdx !== undefined) {
+    const p = team[targetIdx]
+    p.level += 3
+    return `${p.name} subió al nivel ${p.level}!`
+  }
+  if (item.id === 'revive' && targetIdx !== undefined) {
+    const p = team[targetIdx]
+    p.hp = Math.floor(p.maxHp * 0.5)
+    return `${p.name} fue revivido con ${p.hp} PS!`
+  }
+  return ''
+}
 
 export const ITEMS: Item[] = [...VITAMINS, ...RELICS]
 

@@ -79,11 +79,11 @@ export function getEvoBonus(dexId: number): number {
 }
 
 export function applyEnemyScale(p: Pokemon, floor: number): void {
-  // Additive flat bonus only — no chained multiplier
-  const bonus = floor * 2
-  p.attack  += bonus
-  p.defense += bonus
-  p.maxHp   += bonus * 3
+  const atkMul = 1.08 + floor * 0.12
+  const hpMul  = 1.06 + floor * 0.10
+  p.attack  = Math.round(p.attack  * atkMul)
+  p.defense = Math.round(p.defense * atkMul)
+  p.maxHp   = Math.round(p.maxHp   * hpMul)
   p.hp = p.maxHp
 }
 

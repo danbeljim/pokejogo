@@ -11,7 +11,7 @@ import { createStarterByDexId, POKEMON_LIST, spriteKey, spriteUrl } from '../ent
 import { Pokemon } from '../entities/Pokemon'
 import { preloadSprites, preloadItemSprites, preloadTrainerSprites, preloadGymLeaderSprites, preloadBadgeSprites } from '../utils/SpriteLoader'
 import { MapNode } from '../managers/LevelGenerator'
-import { TRAINER_ICON_DEX, itemSpriteKey, badgeSpriteKey, BADGE_SPRITES } from '../data/GameAssets'
+import { TRAINER_ICON_DEX, itemSpriteKey, BADGE_SPRITES } from '../data/GameAssets'
 import { EVOLUTION_TARGET_IDS } from '../data/Evolution'
 import { PlatformEventType } from '../types'
 import { Item } from '../data/Items'
@@ -39,7 +39,8 @@ export default class GameScene extends Phaser.Scene {
   private synergyText?: Phaser.GameObjects.Text
   private roguelikeMode: boolean = false
   private trainerClass: string | null = null
-  private battleSpeed: 1 | 2 = 1
+  private battleSpeed: 2 | 3 = 2
+  private playerGold: number = 0
   private teamPanelCollapsed: boolean = false
   private teamToggleBtn?: Phaser.GameObjects.Container
 
@@ -57,7 +58,7 @@ export default class GameScene extends Phaser.Scene {
     super('GameScene')
   }
 
-  init(data: { starterDexId?: number; newGame?: boolean; gameMode?: string; trainerClass?: string; resumeMapId?: number; resumeMedals?: any[]; resumeTeam?: Pokemon[]; resumeBag?: Item[] }) {
+  init(data: { starterDexId?: number; newGame?: boolean; gameMode?: string; trainerClass?: string; resumeMapId?: number; resumeMedals?: any[]; resumeTeam?: Pokemon[]; resumeBag?: Item[]; resumeGold?: number }) {
     this.roguelikeMode = (data?.gameMode || this.registry.get('gameMode')) === 'roguelike'
     this.trainerClass = data?.trainerClass || this.registry.get('trainerClass') || null
 
@@ -71,6 +72,7 @@ export default class GameScene extends Phaser.Scene {
       this.mapManager.collectedMedals = data.resumeMedals || []
       if (data.resumeTeam) this.playerTeam = data.resumeTeam
       if (data.resumeBag) this.playerBag = data.resumeBag
+      if (data.resumeGold !== undefined) this.playerGold = data.resumeGold
     }
     if (data?.starterDexId) {
       this.starterDexId = data.starterDexId
@@ -87,6 +89,9 @@ export default class GameScene extends Phaser.Scene {
     preloadBadgeSprites(this)
     this.load.image('cajadialogo', '/assets/trainers/cajadialogo.jpg')
     this.load.image('dojo-bg', '/assets/locations/dojo.png')
+    this.load.image('shop-icon', '/assets/locations/shop.png')
+    this.load.image('shop-bg', '/assets/locations/shop_int.png')
+    this.load.image('moneda-icon', '/assets/locations/moneda.png')
     this.load.image('home-icon', '/assets/locations/home.png')
     this.load.image('makuhita-icon', '/assets/random/Makuhita_icono_HOME.png')
     this.load.image('cientifico-icon', '/assets/random/cientifico.png')
@@ -119,7 +124,7 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     const currentMap = this.mapManager.getCurrentMap()
-    this.cameras.main.setBackgroundColor(currentMap.bgColor)
+    this.cameras.main.setBackgroundColor('#00000000')
     this.createGrassTileFromImage()
 
     this.drawThemedBackground(currentMap)
@@ -304,6 +309,14 @@ export default class GameScene extends Phaser.Scene {
     const accent = parseInt(currentMap.accentColor.replace('#', '0x'))
     const locKey = `location-bg-${currentMap.id}`
 
+    // ── Full-canvas sky + grass background (matches CSS gradient) ────────────
+    const fullBg = this.add.graphics().setDepth(0)
+    const sky1End = Math.round(h * 0.45)
+    const sky2End = Math.round(h * 0.55)
+    fullBg.fillStyle(0x5DADE2, 1).fillRect(0, 0, w, sky1End)
+    fullBg.fillStyle(0x4A90E2, 1).fillRect(0, sky1End, w, sky2End - sky1End)
+    fullBg.fillStyle(0x4CAF50, 1).fillRect(0, sky2End, w, h - sky2End)
+
     // ── Map rectangle bg only ─────────────────────────────────────────────────
     if (this.textures.exists(locKey)) {
       this.add.image(mapX + mapW / 2, h / 2, locKey)
@@ -400,6 +413,11 @@ export default class GameScene extends Phaser.Scene {
 
     let dragSrcIdx = -1
 
+    const teamSec = document.createElement('div')
+    teamSec.className = 'panel-section'
+    teamSec.style.cssText = 'display:flex;flex-direction:column;gap:4px;padding:6px;margin-bottom:0;'
+    lp.appendChild(teamSec)
+
     for (let i = 0; i < 6; i++) {
       const p = this.playerTeam[i]
       const card = document.createElement('div')
@@ -432,7 +450,7 @@ export default class GameScene extends Phaser.Scene {
           if (!tip) { tip = document.createElement('div'); tip.id = 'team-stats-tip'; document.body.appendChild(tip) }
           tip.style.cssText = `position:fixed;background:#111122ee;border:2px solid #FFD700;padding:10px 14px;color:#fff;font:7px 'Press Start 2P',monospace;pointer-events:none;z-index:9999;white-space:pre;line-height:2`
           const heldLine = (p as any).heldItem ? `\n🎒 ${(p as any).heldItem}` : ''
-          tip.textContent = `${p.name} Nv.${p.level}\n❤ PS: ${p.hp}/${p.maxHp}\n⚔ ATK: ${p.attack}\n🛡 DEF: ${p.defense}\n💨 VEL: ${p.speed}${heldLine}`
+          tip.textContent = `${p.name} Nv.${p.level}\nPS: ${p.hp}/${p.maxHp}\nATK: ${p.attack}\nDEF: ${p.defense}\nVEL: ${p.speed}${heldLine}`
           tip.style.left = (e.clientX + 14) + 'px'
           tip.style.top = (e.clientY - 10) + 'px'
           tip.style.display = 'block'
@@ -462,50 +480,36 @@ export default class GameScene extends Phaser.Scene {
         this.drawTeamPanel()
       })
 
-      lp.appendChild(card)
+      teamSec.appendChild(card)
     }
-  }
 
-  private renderRightPanel() {
-    const rp = document.getElementById('right-panel')
-    if (!rp) return
-    rp.innerHTML = ''
-    const currentMap = this.mapManager.getCurrentMap()
-    const leaders = Object.keys(BADGE_SPRITES)
+    // Badges below team
     const collected = new Set(this.mapManager.collectedMedals.map((m: any) => m.gymLeaderName))
-
-    // Map info
-    const infoSec = document.createElement('div')
-    infoSec.className = 'panel-section'
-    infoSec.innerHTML = `<div class="panel-section-label">ITEMS</div>
-      <div class="panel-info">Mapa ${currentMap.id} · ${currentMap.gymLeaderName}<br>${this.mapManager.getMedalCount()}/8 Medallas</div>`
-    rp.appendChild(infoSec)
-
-    // Badges
     const badgeSec = document.createElement('div')
     badgeSec.className = 'panel-section'
-    const badgeLabel = document.createElement('div')
-    badgeLabel.className = 'panel-section-label'
-    badgeLabel.textContent = 'MEDALLAS'
-    badgeSec.appendChild(badgeLabel)
+    badgeSec.innerHTML = `<div class="panel-section-label">MEDALLAS (${this.mapManager.getMedalCount()}/8)</div>`
     const grid = document.createElement('div')
     grid.className = 'badge-grid'
-    leaders.forEach(name => {
-      const key = badgeSpriteKey(name)
+    Object.keys(BADGE_SPRITES).forEach(name => {
       const item = document.createElement('div')
       item.className = 'badge-item'
-      const alpha = collected.has(name) ? '1' : '0.2'
       item.style.background = collected.has(name) ? '#ffd700' : '#333'
-      item.style.opacity = alpha
-      const texture = this.textures.get(key)
-      if (texture && texture.key !== '__MISSING') {
-        const src = (texture.getSourceImage() as HTMLImageElement).src
-        item.innerHTML = `<img src="${src}" alt="${name}" />`
-      }
+      item.style.opacity = collected.has(name) ? '1' : '0.2'
+      const url = BADGE_SPRITES[name]
+      if (url) item.innerHTML = `<img src="${url}" alt="${name}" style="width:100%;height:100%;object-fit:contain;" />`
       grid.appendChild(item)
     })
     badgeSec.appendChild(grid)
-    rp.appendChild(badgeSec)
+    lp.appendChild(badgeSec)
+
+    // Map info
+    const currentMap = this.mapManager.getCurrentMap()
+    const infoSec = document.createElement('div')
+    infoSec.className = 'panel-section'
+    infoSec.innerHTML = `<div class="panel-section-label">MAPA</div>
+      <div class="panel-info">${currentMap.gymLeaderName}<br>${currentMap.themeName}</div>
+`
+    lp.appendChild(infoSec)
 
     // Roguelike synergy
     if (this.roguelikeMode) {
@@ -515,7 +519,7 @@ export default class GameScene extends Phaser.Scene {
       synDiv.style.color = syn ? syn.color : '#ff4444'
       const clsLabel = this.trainerClass ? this.trainerClass.toUpperCase() : ''
       synDiv.textContent = `◆ ROGUELIKE ${clsLabel}${syn ? ' · ' + syn.name : ''}`
-      rp.appendChild(synDiv)
+      lp.appendChild(synDiv)
     }
 
     const mkIconBtn = (imgSrc: string, label: string, active = false) => {
@@ -525,12 +529,19 @@ export default class GameScene extends Phaser.Scene {
       return btn
     }
 
-    // Speed toggle
-    const speedBtn = mkIconBtn('/assets/trainers/bici.png', this.battleSpeed === 2 ? 'x2 RAPIDO' : 'x1 NORMAL', this.battleSpeed === 2)
-    speedBtn.onclick = () => { this.battleSpeed = this.battleSpeed === 2 ? 1 : 2; this.renderRightPanel() }
-    rp.appendChild(speedBtn)
+    const btnSec = document.createElement('div')
+    btnSec.className = 'panel-section'
+    btnSec.style.cssText = 'display:flex;flex-direction:column;gap:4px;padding:6px;'
+    lp.appendChild(btnSec)
 
-    // Bag button
+    const speedBtn = mkIconBtn('/assets/trainers/bici.png', this.battleSpeed === 3 ? 'x2 RAPIDO' : 'x1 NORMAL', this.battleSpeed === 3)
+    speedBtn.onclick = () => { this.battleSpeed = this.battleSpeed === 3 ? 2 : 3; this.drawTeamPanel() }
+    btnSec.appendChild(speedBtn)
+
+    const goldBtn = mkIconBtn('/assets/locations/moneda.png', `${this.playerGold} MONEDAS`)
+    goldBtn.style.cssText += 'color:#000000;'
+    btnSec.appendChild(goldBtn)
+
     const bagBtn = mkIconBtn('/assets/Mochila_DP_(chico).png', 'MOCHILA')
     bagBtn.onclick = () => {
       if (this.eventOccurred) return
@@ -538,12 +549,16 @@ export default class GameScene extends Phaser.Scene {
       this.scene.pause()
       this.scene.launch('BagScene', { playerTeam: this.playerTeam, playerBag: this.playerBag, onComplete: () => { this.setSceneUiVisible(true); this.updateHud() } })
     }
-    rp.appendChild(bagBtn)
+    btnSec.appendChild(bagBtn)
 
-    // Menu button
     const menuBtn = mkIconBtn('/assets/80px-Cuerda_huida_EP.png', 'MENU')
     menuBtn.onclick = () => { if (!this.roguelikeMode) this.registry.set('hasSavedGame', true); this.scene.start('MainMenuScene') }
-    rp.appendChild(menuBtn)
+    btnSec.appendChild(menuBtn)
+  }
+
+  private renderRightPanel() {
+    const rp = document.getElementById('right-panel')
+    if (rp) rp.innerHTML = ''
   }
 
   private setupSlotDrag() { /* drag moved to HTML panel */ }
@@ -706,6 +721,20 @@ export default class GameScene extends Phaser.Scene {
           }
         })
       })
+    } else if (result.requiresMerchant) {
+      this.scene.pause()
+      this.setSceneUiVisible(false)
+      this.scene.launch('MerchantScene', {
+        playerTeam: this.playerTeam,
+        playerBag: this.playerBag,
+        playerGold: this.playerGold,
+        onComplete: (gold: number) => {
+          this.playerGold = gold
+          this.setSceneUiVisible(true)
+          this.eventOccurred = false
+          this.updateHud()
+        }
+      })
     } else if (result.type === 'pokemon_center') {
       this.setSceneUiVisible(true)
       this.showToast('¡Centro Pokémon! Equipo curado al completo.')
@@ -740,6 +769,7 @@ export default class GameScene extends Phaser.Scene {
 
     if (!won) {
       this.playerTeam = []
+      this.playerGold = 0
       this.mapManager.currentMapId = 0
       this.mapManager.collectedMedals = []
       this.registry.set('hasSavedGame', false)
@@ -752,6 +782,10 @@ export default class GameScene extends Phaser.Scene {
     }
 
     const { message: rewardMsg, pendingEvolutions } = this.eventManager.applyBattleReward(this.playerTeam, battleType, isDouble)
+
+    // Award gold: 2 per trainer/double, 3 per boss
+    if (battleType === 'trainer' || isDouble) { this.playerGold += 2; this.showToast(`+2 monedas de oro! Total: ${this.playerGold} G`) }
+    else if (battleType === 'boss') { this.playerGold += 3; this.showToast(`+3 monedas de oro! Total: ${this.playerGold} G`) }
 
     if (battleType === 'boss') {
       const currentMap = this.mapManager.getCurrentMap()
@@ -776,6 +810,7 @@ export default class GameScene extends Phaser.Scene {
           resumeMedals: medals,
           resumeTeam: team,
           resumeBag: bag,
+          resumeGold: this.playerGold,
           gameMode: this.roguelikeMode ? 'roguelike' : 'normal',
           trainerClass: this.trainerClass
         }))
@@ -799,6 +834,7 @@ export default class GameScene extends Phaser.Scene {
         resumeMedals: medals,
         resumeTeam: team,
         resumeBag: bag,
+        resumeGold: this.playerGold,
         gameMode: this.roguelikeMode ? 'roguelike' : 'normal',
         trainerClass: this.trainerClass
       }))

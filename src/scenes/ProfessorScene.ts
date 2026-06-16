@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { Pokemon } from '../entities/Pokemon'
 import { EVOLUTIONS } from '../data/Evolution'
 import { MOVES } from '../data/Moves'
-import { createWildPokemon } from '../entities/PokemonFactory'
+import { createWildPokemon, spriteUrl } from '../entities/PokemonFactory'
 
 export interface ProfessorSceneData {
   playerTeam: Pokemon[]
@@ -93,6 +93,37 @@ export default class ProfessorScene extends Phaser.Scene {
     })
   }
 
+  private makePokemonCard(p: Pokemon, label: string, sublabel: string, onclick: () => void): HTMLDivElement {
+    const isMobile = window.innerWidth < 700
+    const card = document.createElement('div')
+    card.style.cssText = `
+      background:#001520; border:2px solid #00BCD4; border-radius:10px;
+      padding:${isMobile ? '8px' : '12px'}; width:${isMobile ? '80px' : '110px'};
+      text-align:center; cursor:pointer; box-sizing:border-box;
+      transition:transform 0.15s;
+    `
+    card.onmouseenter = () => { card.style.transform = 'scale(1.05)'; card.style.borderColor = '#FFD700' }
+    card.onmouseleave = () => { card.style.transform = ''; card.style.borderColor = '#00BCD4' }
+    const img = document.createElement('img')
+    img.src = spriteUrl(p.id)
+    img.style.cssText = `width:${isMobile ? '52px' : '72px'}; height:${isMobile ? '52px' : '72px'}; image-rendering:pixelated; display:block; margin:0 auto;`
+    card.appendChild(img)
+    const name = document.createElement('div')
+    name.textContent = label
+    name.style.cssText = `color:#fff; font-size:${isMobile ? '9px' : '11px'}; font-weight:bold; margin-top:4px;`
+    card.appendChild(name)
+    const sub = document.createElement('div')
+    sub.textContent = sublabel
+    sub.style.cssText = `color:#aaddff; font-size:${isMobile ? '9px' : '10px'}; margin-bottom:6px;`
+    card.appendChild(sub)
+    const btn = document.createElement('button')
+    btn.textContent = 'Elegir'
+    btn.style.cssText = 'background:#001520; color:#FFD700; border:1px solid #FFD700; padding:4px 8px; font-size:10px; border-radius:6px; cursor:pointer; width:100%;'
+    btn.onclick = onclick
+    card.appendChild(btn)
+    return card
+  }
+
   private renderLearnMove(wrap: HTMLDivElement) {
     wrap.innerHTML = ''
     const title = document.createElement('h2')
@@ -105,11 +136,7 @@ export default class ProfessorScene extends Phaser.Scene {
     wrap.appendChild(row)
 
     this.data_.playerTeam.forEach(p => {
-      const btn = document.createElement('button')
-      btn.style.cssText = 'background:#001520; color:#fff; border:2px solid #00BCD4; padding:10px 16px; font-size:14px; border-radius:8px; cursor:pointer;'
-      btn.textContent = `${p.name} Nv.${p.level}`
-      btn.onclick = () => this.renderPickMove(wrap, p)
-      row.appendChild(btn)
+      row.appendChild(this.makePokemonCard(p, p.name, `Nv.${p.level}`, () => this.renderPickMove(wrap, p)))
     })
     this.addBack(wrap, () => this.renderMainMenu(wrap))
   }
@@ -167,11 +194,38 @@ export default class ProfessorScene extends Phaser.Scene {
       const row = document.createElement('div')
       row.style.cssText = 'display:flex; gap:10px; flex-wrap:wrap; justify-content:center; padding:0 12px;'
       wrap.appendChild(row)
+      const isMobile = window.innerWidth < 700
       evolvable.forEach(p => {
         const evo = EVOLUTIONS[p.id]!
+        const card = document.createElement('div')
+        card.style.cssText = `
+          background:#001520; border:2px solid #00BCD4; border-radius:10px;
+          padding:${isMobile ? '8px' : '12px'}; width:${isMobile ? '130px' : '180px'};
+          text-align:center; cursor:pointer; box-sizing:border-box;
+          transition:transform 0.15s;
+        `
+        card.onmouseenter = () => { card.style.transform = 'scale(1.05)'; card.style.borderColor = '#FFD700' }
+        card.onmouseleave = () => { card.style.transform = ''; card.style.borderColor = '#00BCD4' }
+        const imgRow = document.createElement('div')
+        imgRow.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:6px;'
+        const imgFrom = document.createElement('img')
+        imgFrom.src = spriteUrl(p.id)
+        imgFrom.style.cssText = `width:${isMobile ? '44px' : '60px'}; height:${isMobile ? '44px' : '60px'}; image-rendering:pixelated;`
+        const arrow = document.createElement('span')
+        arrow.textContent = '→'
+        arrow.style.cssText = 'color:#FFD700; font-size:18px;'
+        const imgTo = document.createElement('img')
+        imgTo.src = spriteUrl(evo.toDexId)
+        imgTo.style.cssText = `width:${isMobile ? '44px' : '60px'}; height:${isMobile ? '44px' : '60px'}; image-rendering:pixelated;`
+        imgRow.appendChild(imgFrom); imgRow.appendChild(arrow); imgRow.appendChild(imgTo)
+        card.appendChild(imgRow)
+        const label = document.createElement('div')
+        label.innerHTML = `<b style="color:#fff;font-size:${isMobile ? '10px' : '12px'}">${p.name}</b><span style="color:#aaddff;font-size:${isMobile ? '10px' : '12px'}"> → ${evo.toName}</span>`
+        label.style.cssText = 'margin-bottom:8px;'
+        card.appendChild(label)
         const btn = document.createElement('button')
-        btn.style.cssText = 'background:#001520; color:#fff; border:2px solid #00BCD4; padding:10px 16px; font-size:13px; border-radius:8px; cursor:pointer; text-align:left;'
-        btn.innerHTML = `<b>${p.name}</b> → ${evo.toName}`
+        btn.textContent = 'Evolucionar'
+        btn.style.cssText = 'background:#001520; color:#FFD700; border:1px solid #FFD700; padding:5px 10px; font-size:11px; border-radius:6px; cursor:pointer; width:100%;'
         btn.onclick = () => {
           const prevName = p.name
           p.id = evo.toDexId
@@ -182,7 +236,8 @@ export default class ProfessorScene extends Phaser.Scene {
           console.log(`[Professor] ${prevName} evolucionó a ${evo.toName}`)
           this.done()
         }
-        row.appendChild(btn)
+        card.appendChild(btn)
+        row.appendChild(card)
       })
     }
     this.addBack(wrap, () => this.renderMainMenu(wrap))
@@ -200,11 +255,7 @@ export default class ProfessorScene extends Phaser.Scene {
     wrap.appendChild(row)
 
     this.data_.playerTeam.forEach((p, idx) => {
-      const btn = document.createElement('button')
-      btn.style.cssText = 'background:#001520; color:#fff; border:2px solid #00BCD4; padding:10px 16px; font-size:14px; border-radius:8px; cursor:pointer;'
-      btn.textContent = `${p.name} Nv.${p.level}`
-      btn.onclick = () => this.renderPickReplacement(wrap, idx)
-      row.appendChild(btn)
+      row.appendChild(this.makePokemonCard(p, p.name, `Nv.${p.level}`, () => this.renderPickReplacement(wrap, idx)))
     })
     this.addBack(wrap, () => this.renderMainMenu(wrap))
   }
@@ -230,22 +281,10 @@ export default class ProfessorScene extends Phaser.Scene {
     wrap.appendChild(row)
 
     opts.forEach(newPoke => {
-      const card = document.createElement('div')
-      card.style.cssText = `background:#001520; border:2px solid #00BCD4; border-radius:10px; padding:14px; width:${isMobile ? '90px' : '140px'}; text-align:center; cursor:pointer; box-sizing:border-box;`
-      card.innerHTML = `
-        <div style="color:#FFD700;font-weight:bold;font-size:${isMobile ? '12px' : '15px'};margin-bottom:4px">${newPoke.name}</div>
-        <div style="color:#aaddff;font-size:11px">Nv.${newPoke.level}</div>
-        <div style="color:#aaddff;font-size:11px;margin-bottom:10px">Tipo: ${newPoke.type}</div>
-      `
-      const btn = document.createElement('button')
-      btn.textContent = 'Elegir'
-      btn.style.cssText = 'background:#001520; color:#FFD700; border:1px solid #FFD700; padding:6px 10px; font-size:11px; border-radius:6px; cursor:pointer; width:100%;'
-      btn.onclick = () => {
+      row.appendChild(this.makePokemonCard(newPoke, newPoke.name, `Nv.${newPoke.level} · ${newPoke.type}`, () => {
         this.data_.playerTeam[slotIdx] = newPoke
         this.done()
-      }
-      card.appendChild(btn)
-      row.appendChild(card)
+      }))
     })
     this.addBack(wrap, () => this.renderSwap(wrap))
   }

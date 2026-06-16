@@ -13,7 +13,7 @@ export interface BattleData {
   gymLeaderName?: string
   playerBag?: Item[]
   synergyBonuses?: { atk?: number; def?: number; spd?: number }
-  battleSpeed?: 1 | 2
+  battleSpeed?: 2 | 3
   backgroundKey?: string
   isDouble?: boolean
   onComplete: (won: boolean) => void
@@ -75,7 +75,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerIdx = 0
     this.enemyIdx = 0
     this.turnLock = false
-    this.speedMul = data.battleSpeed ?? 1
+    this.speedMul = data.battleSpeed ?? 2
     this.actionButtons = []
     this.currentSprites = []
     this.playerSpriteRef = undefined
@@ -117,6 +117,8 @@ export default class BattleScene extends Phaser.Scene {
       bg.setDisplaySize(this.W, this.H).setDepth(-1).setAlpha(0.45)
     }
 
+    const firstAlive = this.battleData.playerTeam.findIndex(p => p.isAlive())
+    if (firstAlive !== -1) this.playerIdx = firstAlive
     this.playerPokemon = this.battleData.playerTeam[this.playerIdx]
     this.enemyPokemon = this.battleData.enemyTeam[this.enemyIdx]
 
@@ -440,7 +442,7 @@ export default class BattleScene extends Phaser.Scene {
     const synDefMul = (isPlayer && syn?.def) ? syn.def : 1
     const effAtk = attacker.attack * synAtkMul
     const effDef = defender.defense / synDefMul
-    const base = (effAtk * move.power * attacker.level) / ((effDef + 20) * 30)
+    const base = (effAtk * move.power * Math.pow(attacker.level, 0.6)) / ((effDef + 20) * 10)
     const variance = 0.85 + Math.random() * 0.3
     const relic = attacker.heldItem
     const relicMul = (relic === 'choice-band' || relic === 'life-orb') ? 1.3 : 1
@@ -500,18 +502,18 @@ export default class BattleScene extends Phaser.Scene {
   private showMessageQueue(msgs: string[], onDone: () => void) {
     if (msgs.length === 0) { onDone(); return }
     this.log(msgs[0])
-    this.wait(1200, () => this.showMessageQueue(msgs.slice(1), onDone))
+    this.wait(600, () => this.showMessageQueue(msgs.slice(1), onDone))
   }
 
   private handleEnemyFaint() {
     this.log(`¡${this.enemyPokemon.name} enemigo se debilitó!`)
     const fainted = this.enemyPokemon
 
-    this.wait(600, () => {
+    this.wait(300, () => {
       this.awardXp(fainted, () => {
         this.enemyIdx++
         if (this.enemyIdx >= this.battleData.enemyTeam.length) {
-          this.wait(800, () => this.endBattle(true))
+          this.wait(300, () => this.endBattle(true))
         } else {
           this.enemyPokemon = this.battleData.enemyTeam[this.enemyIdx]
           this.log(`¡El rival envía a ${this.enemyPokemon.name}!`)
@@ -806,7 +808,7 @@ export default class BattleScene extends Phaser.Scene {
 
   private endBattle(won: boolean) {
     this.log(won ? '¡Victoria!' : 'Derrota...')
-    this.wait(1500, () => {
+    this.wait(400, () => {
       const cb = this.battleData.onComplete
       this.scene.resume('GameScene')
       this.scene.stop()

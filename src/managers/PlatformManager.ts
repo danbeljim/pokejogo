@@ -110,7 +110,7 @@ export default class PlatformManager {
     const mobile = this.scene.scale.width < 1000
     const isBoss = node.eventType === PlatformEventType.BOSS
     const isStart = node.id === this.map.startNodeId
-    const spriteSize = isBoss ? (mobile ? 52 : 96) : isStart ? (mobile ? 44 : 80) : (mobile ? 36 : 68)
+    const spriteSize = isBoss ? (mobile ? 64 : 120) : isStart ? (mobile ? 54 : 100) : (mobile ? 46 : 88)
 
     const container = this.scene.add.container(node.x, node.y)
     container.setDepth(2)
@@ -241,6 +241,10 @@ export default class PlatformManager {
         key = 'legendarios-icon'
         scale = 1.2
         break
+      case PlatformEventType.MERCHANT:
+        key = 'shop-icon'
+        scale = 1.4
+        break
       case PlatformEventType.BOSS: {
         const gkey = gymLeaderSpriteKey(this.bossGymLeaderName)
         if (this.scene.textures.exists(gkey)) {
@@ -329,6 +333,7 @@ export default class PlatformManager {
       case PlatformEventType.DOJO: return '🥋'
       case PlatformEventType.PROFESSOR: return '🔬'
       case PlatformEventType.PORTAL: return '✨'
+      case PlatformEventType.MERCHANT: return '$'
       default: return '?'
     }
   }
@@ -371,6 +376,8 @@ export default class PlatformManager {
         return ['CIENTÍFICO', '🔬 Aprende movimiento,\nevolucion instantanea\no cambio de Pokemon.']
       case PlatformEventType.PORTAL:
         return ['PORTAL EXTRAÑO', '✨ Una dimension\nextraña. Pokemon\nlegendario te aguarda.']
+      case PlatformEventType.MERCHANT:
+        return ['MERCADER', '$ Compra pociones,\ncaramelos raros\ny revivires con oro.']
       default:
         return ['???']
     }

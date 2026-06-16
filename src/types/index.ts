@@ -12,7 +12,8 @@ export enum PlatformEventType {
   BERRY_TREE = 'berry_tree',
   DOJO = 'dojo',
   PROFESSOR = 'professor',
-  PORTAL = 'portal'
+  PORTAL = 'portal',
+  MERCHANT = 'merchant'
 }
 
 export interface PlatformEvent {

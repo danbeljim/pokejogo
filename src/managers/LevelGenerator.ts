@@ -61,7 +61,7 @@ export default class LevelGenerator {
       const cols = nodesPerFloor[f]
       const y = maxY - rowSpacing * f
       const rowSlots: number[] = []
-      const halfSpan = Math.round(worldWidth * (mobile ? 0.18 : 0.25))
+      const halfSpan = Math.round(worldWidth * (mobile ? 0.22 : 0.30))
       const colWidth = cols === 1 ? 0 : halfSpan * 2 / (cols - 1)
       const centerX = mapAreaX + worldWidth / 2
       const startX = cols === 1 ? centerX : centerX - halfSpan
@@ -148,10 +148,10 @@ export default class LevelGenerator {
 
     const W  = mapAreaW
     const mobile   = GAME_W < 1000
-    const minY     = Math.round(GAME_H * (mobile ? 0.21 : 0.18))
-    const maxY     = Math.round(GAME_H * (mobile ? 0.69 : 0.72))
+    const minY     = Math.round(GAME_H * (mobile ? 0.19 : 0.15))
+    const maxY     = Math.round(GAME_H * (mobile ? 0.72 : 0.76))
     const cx       = mapAreaX + mapAreaW / 2
-    const halfSpan = W * (mobile ? 0.16 : 0.19)
+    const halfSpan = W * (mobile ? 0.20 : 0.24)
 
     // Fixed 9-row diamond: [1, 2, 3, 4, 3, 4, 3, 2, 1]
     // r=0 = START (bottom), r=8 = BOSS (top)
@@ -332,7 +332,7 @@ export default class LevelGenerator {
       return this.tryItemPickup()
     }
     if (r < 0.80) return this.tryCapture()
-    if (r < 0.90) return PlatformEventType.RANDOM
+    if (r < 0.90) return PlatformEventType.MERCHANT
     if (!this.portalGenerated && this.currentMapId >= 5) { this.portalGenerated = true; return PlatformEventType.PORTAL }
     return this.tryItemPickup()
   }

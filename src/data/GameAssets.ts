@@ -1,7 +1,10 @@
 export const ITEM_SPRITES: Record<string, string> = {
   pokeball: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png',
   potion: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/potion.png',
+  super_potion: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/super-potion.png',
+  rare_candy: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png',
   rarecandy: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png',
+  revive: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/revive.png',
   greatball: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png',
   bag: '/assets/Mochila_DP_(chico).png',
   menuBtn: '/assets/80px-Cuerda_huida_EP.png',

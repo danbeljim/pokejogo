@@ -173,7 +173,7 @@ export default class RandomPickerScene extends Phaser.Scene {
 
     const difficulty = this.pickerData.difficulty
     const level = Math.max(3, difficulty * 3 + Math.floor(Math.random() * 4))
-    const pool = POKEMON_LIST.filter(p => method.types.includes(p.type))
+    const pool = POKEMON_LIST.filter(p => method.types.includes(p.type) && (difficulty >= 4 || p.capturable === undefined))
     const seen = new Set<number>()
     const opts: Pokemon[] = []
     let tries = 0

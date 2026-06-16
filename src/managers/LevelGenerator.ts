@@ -34,15 +34,22 @@ const TOWER_FLOOR_POOLS: PlatformEventType[][] = [
 
 export default class LevelGenerator {
   private portalGenerated: boolean = false
+  private dojoGenerated: boolean = false
+  private profesorGenerated: boolean = false
+  private berryGenerated: boolean = false
   private currentWildPool?: number[]
+  private currentMapId: number = 0
+  private itemPickupCount: number = 0
+  private captureCount: number = 0
+  private doubleBattleGenerated: boolean = false
 
-  generateTower(playerMaxLevel: number): GameMap {
+  generateTower(playerMaxLevel: number, mapAreaX: number = 0, mapAreaW: number = GAME_W): GameMap {
     const nodes: MapNode[] = []
     const mobile = GAME_W < 1000
-    const worldWidth = GAME_W
+    const worldWidth = mapAreaW
     const floors = TOWER_FLOOR_POOLS.length
-    const minY = Math.round(GAME_H * (mobile ? 0.20 : 0.17))
-    const maxY = Math.round(GAME_H * (mobile ? 0.84 : 0.87))
+    const minY = Math.round(GAME_H * (mobile ? 0.12 : 0.09))
+    const maxY = Math.round(GAME_H * (mobile ? 0.69 : 0.72))
     const rowSpacing = (maxY - minY) / (floors - 1)
     let nextId = 0
     const rowNodes: number[][] = []
@@ -56,7 +63,8 @@ export default class LevelGenerator {
       const rowSlots: number[] = []
       const halfSpan = Math.round(worldWidth * (mobile ? 0.18 : 0.25))
       const colWidth = cols === 1 ? 0 : halfSpan * 2 / (cols - 1)
-      const startX = cols === 1 ? worldWidth / 2 : worldWidth / 2 - halfSpan
+      const centerX = mapAreaX + worldWidth / 2
+      const startX = cols === 1 ? centerX : centerX - halfSpan
 
       for (let c = 0; c < cols; c++) {
         const x = cols === 1 ? startX : startX + colWidth * c
@@ -127,129 +135,206 @@ export default class LevelGenerator {
     }
   }
 
-  generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5, ghostOnly: boolean = false, wildPool?: number[]): GameMap {
+  generateLevel(platformCount: number, difficulty: number, playerMaxLevel: number = 5, ghostOnly: boolean = false, wildPool?: number[], mapId: number = 0, mapAreaX: number = 0, mapAreaW: number = GAME_W): GameMap {
     this.portalGenerated = false
+    this.dojoGenerated = false
+    this.profesorGenerated = false
+    this.berryGenerated = false
     this.currentWildPool = wildPool
+    this.currentMapId = mapId
+    this.itemPickupCount = 0
+    this.captureCount = 0
+    this.doubleBattleGenerated = false
+
+    const W  = mapAreaW
+    const mobile   = GAME_W < 1000
+    const minY     = Math.round(GAME_H * (mobile ? 0.21 : 0.18))
+    const maxY     = Math.round(GAME_H * (mobile ? 0.69 : 0.72))
+    const cx       = mapAreaX + mapAreaW / 2
+    const halfSpan = W * (mobile ? 0.16 : 0.19)
+
+    // Fixed 9-row diamond: [1, 2, 3, 4, 3, 4, 3, 2, 1]
+    // r=0 = START (bottom), r=8 = BOSS (top)
+    const ROW_COUNTS = [1, 2, 3, 4, 3, 4, 3, 2, 1]
+    const ROWS = ROW_COUNTS.length
+    const rowSpacing = (maxY - minY) / (ROWS - 1)
+
+    // X positions: evenly spread within halfSpan, symmetric per row
+    const rowXs: number[][] = ROW_COUNTS.map(count => {
+      if (count === 1) return [cx]
+      return Array.from({ length: count }, (_, c) =>
+        cx - halfSpan + (halfSpan * 2 / (count - 1)) * c
+      )
+    })
+
+    // ── Build nodes ───────────────────────────────────────────────────────────
     const nodes: MapNode[] = []
-    const mobile = GAME_W < 1000
-    const worldWidth = GAME_W
-    const rows = 8
-    const minY = Math.round(GAME_H * (mobile ? 0.20 : 0.17))
-    const maxY = Math.round(GAME_H * (mobile ? 0.84 : 0.87))
-    const rowSpacing = (maxY - minY) / (rows - 1)
-
-    let nextId = 0
     const rowNodes: number[][] = []
-    const nodesPerRow = [1, 2, 3, 4, 5, 4, 2, 1]
+    let nextId = 0
 
-    // Position nodes in centered diamond grid
-    for (let r = 0; r < rows; r++) {
-      const cols = nodesPerRow[r]
-      const y = maxY - rowSpacing * r
-      const rowSlots: number[] = []
+    for (let r = 0; r < ROWS; r++) {
+      const count = ROW_COUNTS[r]
+      const y     = maxY - rowSpacing * r
+      const slots: number[] = []
 
-      // Center the row based on number of columns
-      let colWidth = 0
-      let startX = 0
-      const halfSpan = Math.round(worldWidth * (mobile ? 0.19 : 0.15625))
-      if (cols === 1) {
-        startX = worldWidth / 2
-      } else {
-        colWidth = halfSpan * 2 / (cols - 1)
-        startX = worldWidth / 2 - halfSpan
-      }
-
-      for (let c = 0; c < cols; c++) {
-        const x = cols === 1 ? startX : startX + colWidth * c
-        const centerCol = Math.floor(nodesPerRow[r] / 2)
-        const eventType = r === rows - 1 ? PlatformEventType.BOSS :
-                          r === 0 ? (ghostOnly ? PlatformEventType.POKEMON_CENTER : PlatformEventType.POKEMON_CAPTURE) :
-                          r === rows - 2 && c === centerCol ? PlatformEventType.POKEMON_CENTER :
-                          ghostOnly ? this.getGhostEvent() :
-                          this.getRandomEvent(difficulty)
-        const node: MapNode = {
+      for (let c = 0; c < count; c++) {
+        const x         = rowXs[r][c]
+        const eventType = this.pickEventForRow(r, ROWS, c, count, difficulty, ghostOnly)
+        nodes.push({
           id: nextId++,
-          x,
-          y,
-          row: r,
-          col: c,
+          x, y,
+          row: r, col: c,
           eventType,
-          eventData: (r === 0 && !ghostOnly) ? { pokemonId: 25 } : this.generateEventData(eventType, difficulty, r, rows, playerMaxLevel, ghostOnly),
+          eventData: (r === 0 && !ghostOnly)
+            ? { pokemonId: 25 }
+            : this.generateEventData(eventType, difficulty, r, ROWS, playerMaxLevel, ghostOnly),
           connections: [],
-          visited: r === 0
-        }
-        nodes.push(node)
-        rowSlots.push(node.id)
+          visited: r === 0,
+        })
+        slots.push(nextId - 1)
       }
-      rowNodes.push(rowSlots)
+      rowNodes.push(slots)
     }
 
-    const startNodeId = nodes.find(n => n.eventType === PlatformEventType.POKEMON_CAPTURE)?.id || 0
-    const bossNodeId = nodes.find(n => n.eventType === PlatformEventType.BOSS)?.id || nodes.length - 1
+    // ── Connections: adjacency rule, max 2 out / max 2 in, 20% converge ──────
+    //
+    // proj(i, N, M) = (N===1) ? (M-1)/2 : i*(M-1)/(N-1)
+    // canReach(i→j): |proj - j| ≤ 1  →  no skip connections, no crossings
+    // Convergence 20%: secondary may reuse an already-targeted dst node
 
-    // Build connections: monotonic (no crossing), 1 connection per node max
-    // unless needed to cover uncovered targets
-    for (let r = 0; r < rows - 1; r++) {
-      const cur = rowNodes[r].map(id => ({ id, x: nodes[id].x })).sort((a, b) => a.x - b.x)
-      const nxt = rowNodes[r + 1].map(id => ({ id, x: nodes[id].x })).sort((a, b) => a.x - b.x)
+    const inDeg = new Array(nodes.length).fill(0)
 
-      const midNxt = Math.floor(nxt.length / 2)
+    const proj = (i: number, N: number, M: number): number =>
+      N === 1 ? (M - 1) / 2 : i * (M - 1) / (N - 1)
 
-      // Monotonic primary connection
-      cur.forEach((src, si) => {
-        const ti = Math.round((si / Math.max(cur.length - 1, 1)) * (nxt.length - 1))
-        nodes[src.id].connections.push(nxt[ti].id)
-      })
+    const canReach = (i: number, N: number, j: number, M: number): boolean =>
+      Math.abs(proj(i, N, M) - j) <= 1.0001
 
-      // Leftmost and rightmost nodes get an extra connection toward the middle
-      if (cur.length >= 2 && nxt.length >= 3) {
-        const leftSrc = cur[0]
-        const rightSrc = cur[cur.length - 1]
-        const midTarget = nxt[midNxt]
-        if (!nodes[leftSrc.id].connections.includes(midTarget.id))
-          nodes[leftSrc.id].connections.push(midTarget.id)
-        if (!nodes[rightSrc.id].connections.includes(midTarget.id))
-          nodes[rightSrc.id].connections.push(midTarget.id)
+    const addEdge = (srcId: number, dstId: number) => {
+      if (!nodes[srcId].connections.includes(dstId)) {
+        nodes[srcId].connections.push(dstId)
+        inDeg[dstId]++
+      }
+    }
+
+    for (let r = 0; r < ROWS - 1; r++) {
+      const src = rowNodes[r]
+      const dst = rowNodes[r + 1]
+      const N   = src.length
+      const M   = dst.length
+
+      // Primary: each src → nearest projected dst (always fires)
+      for (let i = 0; i < N; i++) {
+        addEdge(src[i], dst[Math.round(proj(i, N, M))])
       }
 
-      // Cover any uncovered targets by linking to nearest source
-      nxt.forEach(tgt => {
-        const covered = cur.some(src => nodes[src.id].connections.includes(tgt.id))
-        if (!covered) {
-          const nearest = [...cur].sort((a, b) => Math.abs(a.x - tgt.x) - Math.abs(b.x - tgt.x))[0]
-          nodes[nearest.id].connections.push(tgt.id)
+      // Secondary: adjacent only, always fires → forms rhombus shapes
+      for (let i = 0; i < N; i++) {
+        if (nodes[src[i]].connections.length >= 2) continue
+        const p   = proj(i, N, M)
+        const pri = Math.round(p)
+        const candidates = p >= pri ? [pri + 1, pri - 1] : [pri - 1, pri + 1]
+        for (const j of candidates) {
+          if (j < 0 || j >= M) continue
+          if (!canReach(i, N, j, M)) continue
+          if (inDeg[dst[j]] >= 2) continue
+          addEdge(src[i], dst[j])
+          break
         }
-      })
+      }
+
+      // Guarantee every dst has ≥1 parent
+      for (let j = 0; j < M; j++) {
+        if (inDeg[dst[j]] > 0) continue
+        const eligible = src.filter(sId =>
+          canReach(nodes[sId].col, N, j, M) && nodes[sId].connections.length < 2
+        )
+        const pool    = eligible.length > 0 ? eligible : src
+        const nearest = pool.reduce((best, sId) =>
+          Math.abs(proj(nodes[sId].col, N, M) - j) <
+          Math.abs(proj(nodes[best].col, N, M) - j) ? sId : best
+        )
+        addEdge(nearest, dst[j])
+      }
     }
 
-    return {
-      nodes,
-      rows,
-      startNodeId,
-      bossNodeId
+    const startNodeId = nodes.find(n => n.row === 0)?.id ?? 0
+    const bossNodeId  = nodes.find(n => n.eventType === PlatformEventType.BOSS)?.id ?? nodes.length - 1
+
+    // Guarantee at least 2 capture nodes in mid-map rows
+    const SAFE = [PlatformEventType.WILD_POKEMON, PlatformEventType.TRAINER_BATTLE, PlatformEventType.MEMORIAL]
+    const midNodes = nodes.filter(n => n.row > 0 && n.row < ROWS - 1 && n.eventType !== PlatformEventType.POKEMON_CAPTURE)
+    let needed = 2 - this.captureCount
+    for (let i = 0; i < midNodes.length && needed > 0; i++) {
+      if (SAFE.includes(midNodes[i].eventType as any)) {
+        midNodes[i].eventType = PlatformEventType.POKEMON_CAPTURE
+        needed--
+      }
     }
+
+    return { nodes, rows: ROWS, startNodeId, bossNodeId }
   }
 
-  private getGhostEvent(): PlatformEventType {
-    const rand = Math.random()
-    if (rand < 0.50) return PlatformEventType.WILD_POKEMON
-    if (rand < 0.75) return PlatformEventType.POKEMON_CAPTURE
+  private pickEventForRow(r: number, ROWS: number, c: number, count: number, difficulty: number, ghostOnly: boolean): PlatformEventType {
+    if (r === 0)        return ghostOnly ? PlatformEventType.POKEMON_CENTER : PlatformEventType.POKEMON_CAPTURE
+    if (r === ROWS - 1) return PlatformEventType.BOSS
+    if (r === ROWS - 2) return PlatformEventType.TRAINER_BATTLE
+    if (r === 4 && count === 3 && c === 1) return this.tryItemPickup()   // guaranteed shop mid-map
+    if (r === 6 && count === 3 && c === 1) return PlatformEventType.POKEMON_CENTER // guaranteed rest late-map
+    if (ghostOnly) return Math.random() < 0.7 ? PlatformEventType.WILD_POKEMON : this.tryItemPickup()
+    const roll = Math.random()
+    if (roll < 0.42 + difficulty * 0.05) return this.pickCombat(difficulty)
+    if (roll < 0.58)                     return PlatformEventType.WILD_POKEMON
+    return this.pickNonCombat()
+  }
+
+  private tryItemPickup(): PlatformEventType {
+    if (this.itemPickupCount >= 2) return PlatformEventType.WILD_POKEMON
+    this.itemPickupCount++
     return PlatformEventType.ITEM_PICKUP
   }
 
-  private getRandomEvent(difficulty: number): PlatformEventType {
-    const rand = Math.random()
-    if (rand < 0.22 + difficulty * 0.04) return PlatformEventType.TRAINER_BATTLE
-    if (rand < 0.30 + difficulty * 0.03) return PlatformEventType.DOUBLE_BATTLE
-    if (rand < 0.52 + difficulty * 0.03) return PlatformEventType.WILD_POKEMON
-    if (rand < 0.63) return PlatformEventType.POKEMON_CAPTURE
-    if (rand < 0.74) return PlatformEventType.ITEM_PICKUP
-    if (rand < 0.78) return PlatformEventType.BERRY_TREE
-    if (rand < 0.87) return PlatformEventType.DOJO
-    if (rand < 0.92) return PlatformEventType.PROFESSOR
-    if (rand < 0.97) return PlatformEventType.RANDOM
-    if (!this.portalGenerated) { this.portalGenerated = true; return PlatformEventType.PORTAL }
-    return PlatformEventType.PROFESSOR
+  private tryCapture(): PlatformEventType {
+    if (this.captureCount >= 2) return PlatformEventType.WILD_POKEMON
+    this.captureCount++
+    return PlatformEventType.POKEMON_CAPTURE
+  }
+
+  private tryDoubleBattle(difficulty: number): PlatformEventType {
+    if (this.currentMapId >= 1 && !this.doubleBattleGenerated) {
+      this.doubleBattleGenerated = true
+      return PlatformEventType.DOUBLE_BATTLE
+    }
+    return PlatformEventType.TRAINER_BATTLE
+  }
+
+  private pickCombat(difficulty: number): PlatformEventType {
+    const r = Math.random()
+    if (r < 0.50 + difficulty * 0.06) return this.tryDoubleBattle(difficulty)
+    if (r < 0.65 + difficulty * 0.04) return this.currentMapId >= 1 ? PlatformEventType.DOUBLE_BATTLE : PlatformEventType.TRAINER_BATTLE
+    return PlatformEventType.WILD_POKEMON
+  }
+
+  private pickNonCombat(): PlatformEventType {
+    const every3 = this.currentMapId > 0 && this.currentMapId % 3 === 0
+    const r = Math.random()
+    if (r < 0.22) return this.tryItemPickup()
+    if (r < 0.38) {
+      if (!this.berryGenerated && every3) { this.berryGenerated = true; return PlatformEventType.BERRY_TREE }
+      return this.tryItemPickup()
+    }
+    if (r < 0.54) {
+      if (!this.dojoGenerated && every3) { this.dojoGenerated = true; return PlatformEventType.DOJO }
+      return this.tryItemPickup()
+    }
+    if (r < 0.68) {
+      if (!this.profesorGenerated && every3) { this.profesorGenerated = true; return PlatformEventType.PROFESSOR }
+      return this.tryItemPickup()
+    }
+    if (r < 0.80) return this.tryCapture()
+    if (r < 0.90) return PlatformEventType.RANDOM
+    if (!this.portalGenerated && this.currentMapId >= 5) { this.portalGenerated = true; return PlatformEventType.PORTAL }
+    return this.tryItemPickup()
   }
 
   private generateEventData(eventType: PlatformEventType, difficulty: number, row: number, rows: number, playerMaxLevel: number, ghostOnly: boolean = false): any {
@@ -257,15 +342,38 @@ export default class LevelGenerator {
     // Always strictly under player's strongest.
     const middleRows = Math.max(1, rows - 2)
     const progress = Math.min(1, row / middleRows) // 0..1
-    const floor = Math.max(2, playerMaxLevel - difficulty - 2)
-    const ceil = Math.max(floor, playerMaxLevel - 1)
+    const floor = Math.max(2, playerMaxLevel - difficulty - 3)
+    // Hard cap: rivals always strictly below player's max level
+    const ceil = Math.max(floor, playerMaxLevel - 2)
     const scaledLevel = Math.round(floor + (ceil - floor) * progress)
+
+    const buildTrainerTeam = (size: number): Pokemon[] => {
+      const pool = ghostOnly
+        ? POKEMON_LIST.filter(p => p.type === 'ghost')
+        : this.currentWildPool
+        ? POKEMON_LIST.filter(p => this.currentWildPool!.includes(p.dexId))
+        : POKEMON_LIST
+      const filtered = pool.length > 0 ? pool : POKEMON_LIST
+      return Array.from({ length: size }, (_, i) => {
+        const entry = filtered[Math.floor(Math.random() * filtered.length)]
+        return createWildPokemon(Math.max(1, scaledLevel - i), entry.dexId, true)
+      })
+    }
+
     switch (eventType) {
       case PlatformEventType.POKEMON_CAPTURE:
         return { pokemonId: undefined }
       case PlatformEventType.TRAINER_BATTLE: {
-        const team: Pokemon[] = createTrainerTeam(difficulty, scaledLevel)
-        return { trainerLevel: scaledLevel, team }
+        const teamSize = Math.min(1 + Math.floor(difficulty / 2), 3)
+        return { trainerLevel: scaledLevel, team: buildTrainerTeam(teamSize) }
+      }
+      case PlatformEventType.DOUBLE_BATTLE: {
+        // Two trainers with 1 Pokémon each, both below player level
+        return {
+          trainerLevel: scaledLevel,
+          team:  buildTrainerTeam(1),
+          team2: buildTrainerTeam(1),
+        }
       }
       case PlatformEventType.WILD_POKEMON: {
         const pool = ghostOnly

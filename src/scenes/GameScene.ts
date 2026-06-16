@@ -44,10 +44,14 @@ export default class GameScene extends Phaser.Scene {
   private teamToggleBtn?: Phaser.GameObjects.Container
 
   private get isMobile() { return this.scale.width < 1000 }
-  private get SLOT_W() { return this.isMobile ? 90 : 150 }
-  private get SLOT_H() { return this.isMobile ? 82 : 140 }
-  private get SLOT_X0() { return 8 }
-  private get SLOT_Y0() { return this.isMobile ? 50 : 80 }
+  private get PANEL_W() { return 0 }
+  private get MAP_W() { return Math.round(this.scale.width * (this.isMobile ? 0.52 : 0.42)) }
+  private get MAP_X() { return Math.round((this.scale.width - this.MAP_W) / 2) }
+  private get RIGHT_CX() { return this.scale.width - 60 }
+  private get SLOT_W() { return 0 }
+  private get SLOT_H() { return 0 }
+  private get SLOT_X0() { return 0 }
+  private get SLOT_Y0() { return 0 }
 
   constructor() {
     super('GameScene')
@@ -144,14 +148,19 @@ export default class GameScene extends Phaser.Scene {
     this.platformManager = new PlatformManager(this)
     this.eventPopup = new EventPopup(this)
     const playerMaxLevel = Math.max(...this.playerTeam.map(p => p.level), 5)
+    const mapAreaX = this.MAP_X
+    const mapAreaW = this.MAP_W
     const map = currentMap.towerMap
-      ? this.levelGenerator.generateTower(playerMaxLevel)
+      ? this.levelGenerator.generateTower(playerMaxLevel, mapAreaX, mapAreaW)
       : this.levelGenerator.generateLevel(
           currentMap.platformCount,
           currentMap.difficulty,
           playerMaxLevel,
           currentMap.ghostOnly,
-          currentMap.wildPool
+          currentMap.wildPool,
+          this.mapManager.currentMapId,
+          mapAreaX,
+          mapAreaW
         )
 
     // Explorador: convert 2 mid nodes to RANDOM events
@@ -172,8 +181,8 @@ export default class GameScene extends Phaser.Scene {
     this.platformManager.setMap(map, (node) => this.onNodeClick(node), currentMap.signaturePokemonDexId, currentMap.gymLeaderName)
 
     this.updateHud()
-    this.drawMenuButtons()
-    this.drawSpeedToggle()
+
+    this.scale.on('resize', () => this.positionHtmlPanels())
 
     // Defensive: any resume from sub-scene clears event lock + refreshes UI
     this.events.on('resume', () => {
@@ -181,119 +190,14 @@ export default class GameScene extends Phaser.Scene {
       this.updateHud()
     })
     this.events.on('shutdown', () => {
+      this.scale.off('resize')
       this.events.off('resume')
       this.events.off('shutdown')
-      this.input.off('dragstart')
-      this.input.off('drag')
-      this.input.off('dragend')
-      this.slotZones.forEach(z => z.destroy())
-      this.slotZones = []
-      if (this.dragGhost) { this.dragGhost.destroy(); this.dragGhost = undefined }
+      this.clearSidePanels()
     })
   }
 
   private speedToggleContainer?: Phaser.GameObjects.Container
-
-  private drawSpeedToggle() {
-    if (this.speedToggleContainer) this.speedToggleContainer.destroy()
-    const fast = this.battleSpeed === 2
-    const SIZE = 64
-    const bx = this.scale.width - 80 - SIZE / 2
-    const by = this.scale.height - 80 - 90 - 84 - SIZE / 2
-    const container = this.add.container(bx, by).setScrollFactor(0).setDepth(200)
-
-    const bg = this.add.graphics()
-    bg.fillStyle(0x000000, 0.4)
-    bg.fillRoundedRect(3, 3, SIZE, SIZE, 10)
-    bg.fillStyle(fast ? 0xFFD700 : 0x1a1a2e, 1)
-    bg.fillRoundedRect(0, 0, SIZE, SIZE, 10)
-    bg.lineStyle(2, fast ? 0xffffff : 0x555577, 1)
-    bg.strokeRoundedRect(0, 0, SIZE, SIZE, 10)
-    container.add(bg)
-
-    if (this.textures.exists('bici')) {
-      const img = this.add.image(SIZE / 2, SIZE / 2 - 4, 'bici').setDisplaySize(42, 42)
-      if (!fast) img.setTint(0xaaaaff)
-      container.add(img)
-    }
-
-    const badgeBg = this.add.graphics()
-    badgeBg.fillStyle(fast ? 0x222222 : 0xFFD700, 1)
-    badgeBg.fillRoundedRect(SIZE - 24, SIZE - 18, 26, 18, 4)
-    container.add(badgeBg)
-
-    const badge = this.add.text(SIZE - 11, SIZE - 9, fast ? 'x2' : 'x1', {
-      font: 'bold 12px Arial',
-      color: fast ? '#FFD700' : '#222222'
-    }).setOrigin(0.5, 0.5)
-    container.add(badge)
-
-    container.setSize(SIZE, SIZE).setInteractive({ useHandCursor: true })
-    container.on('pointerover', () => {
-      bg.setAlpha(0.85)
-      this.showUiTooltip(bx, by + SIZE / 2, 'VELOCIDAD', fast ? 'Combate rapido\nactivo (x2).' : 'Combate lento\nactivo (x1).')
-    })
-    container.on('pointerout', () => { bg.setAlpha(1); this.hideUiTooltip() })
-    container.on('pointerdown', () => {
-      this.battleSpeed = fast ? 1 : 2
-      this.hideUiTooltip()
-      this.drawSpeedToggle()
-    })
-    this.speedToggleContainer = container
-  }
-
-  private drawMenuButtons() {
-    const bagX = this.scale.width - 80
-    const bagY = this.scale.height - 80
-    const yBag     = bagY - 16
-    const yRope    = bagY - 90
-    const menuBtnKey = itemSpriteKey('menuBtn')
-    if (this.textures.exists(menuBtnKey)) {
-      const menuImg = this.add.image(bagX, yRope, menuBtnKey)
-        .setScale(1).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true })
-      menuImg.on('pointerover', () => { menuImg.setScale(1.15); this.showUiTooltip(bagX, yRope, 'CUERDA HUIDA', 'Volver al\nmenu principal.') })
-      menuImg.on('pointerout', () => { menuImg.setScale(1); this.hideUiTooltip() })
-      menuImg.on('pointerdown', () => {
-        if (!this.roguelikeMode) this.registry.set('hasSavedGame', true)
-        this.scene.start('MainMenuScene')
-      })
-    } else {
-      this.add.text(bagX, yRope, '← Menú', {
-        font: 'bold 16px Arial', color: '#FFD700',
-        backgroundColor: '#333', padding: { x: 12, y: 8 }
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => {
-          if (!this.roguelikeMode) this.registry.set('hasSavedGame', true)
-          this.scene.start('MainMenuScene')
-        })
-    }
-
-    const openBag = () => {
-      if (this.eventOccurred) return
-      this.scene.pause()
-      this.scene.launch('BagScene', {
-        playerTeam: this.playerTeam,
-        playerBag: this.playerBag,
-        onComplete: () => this.updateHud()
-      })
-    }
-
-    const bagKey = itemSpriteKey('bag')
-
-    if (this.textures.exists(bagKey)) {
-      const bagImg = this.add.image(bagX, yBag, bagKey)
-        .setScale(1.2).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true })
-      bagImg.on('pointerover', () => { bagImg.setScale(1.4); this.showUiTooltip(bagX, yBag, 'MOCHILA', 'Ver y usar\ntus objetos.') })
-      bagImg.on('pointerout', () => { bagImg.setScale(1.2); this.hideUiTooltip() })
-      bagImg.on('pointerdown', openBag)
-    } else {
-      this.add.text(bagX, bagY, '🎒', {
-        font: 'bold 28px Arial',
-        backgroundColor: '#222', padding: { x: 10, y: 6 }
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true })
-        .on('pointerdown', openBag)
-    }
-  }
 
   private showUiTooltip(anchorX: number, anchorY: number, title: string, body: string) {
     this.hideUiTooltip()
@@ -395,31 +299,27 @@ export default class GameScene extends Phaser.Scene {
   private drawThemedBackground(currentMap: any) {
     const w = this.scale.width
     const h = this.scale.height
-
-    // Location map background from Bulbapedia
+    const mapX = this.MAP_X
+    const mapW = this.MAP_W
+    const accent = parseInt(currentMap.accentColor.replace('#', '0x'))
     const locKey = `location-bg-${currentMap.id}`
+
+    // ── Map rectangle bg only ─────────────────────────────────────────────────
     if (this.textures.exists(locKey)) {
-      const locBg = this.add.image(w / 2, h / 2, locKey)
-      locBg.setDisplaySize(w, h)
-      locBg.setAlpha(0.18)
-      locBg.setDepth(0)
+      this.add.image(mapX + mapW / 2, h / 2, locKey)
+        .setDisplaySize(mapW, h).setDepth(0)
     }
 
-    // Gradient overlay using accent color
-    const accent = parseInt(currentMap.accentColor.replace('#', '0x'))
-    const g = this.add.graphics()
-    g.fillGradientStyle(accent, accent, 0x000000, 0x000000, 0.25, 0.25, 0.6, 0.6)
-    g.fillRect(0, 0, w, h)
-    g.setDepth(0)
+    const mapGrad = this.add.graphics().setDepth(1)
+    mapGrad.fillGradientStyle(accent, accent, 0x000000, 0x000000, 0.10, 0.10, 0.30, 0.30)
+    mapGrad.fillRect(mapX, 0, mapW, h)
 
-    // Title overlay
-    const titleFontSize = this.scale.width < 1000 ? 16 : 32
-    this.add.text(w / 2, this.scale.width < 1000 ? 30 : 60, `${currentMap.routeName}  ·  ${currentMap.themeName}`, {
-      font: `italic bold ${titleFontSize}px Arial`,
-      color: currentMap.accentColor,
-      stroke: '#000',
-      strokeThickness: this.scale.width < 1000 ? 3 : 6
-    }).setOrigin(0.5).setDepth(0).setAlpha(0.7)
+    // Border around portrait map
+    const border = this.add.graphics().setDepth(2)
+    border.lineStyle(this.isMobile ? 2 : 4, 0x000000, 1)
+    border.strokeRect(mapX, 0, mapW, h)
+    border.lineStyle(this.isMobile ? 1 : 2, accent, 0.6)
+    border.strokeRect(mapX + 2, 2, mapW - 4, h - 4)
   }
 
   private drawLegend() {
@@ -449,252 +349,211 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updateHud() {
-    if (this.hudText) this.hudText.destroy()
-    if (this.badgeContainer) this.badgeContainer.destroy()
+    if (this.hudText) { this.hudText.destroy(); this.hudText = undefined }
+    if (this.badgeContainer) { this.badgeContainer.destroy(); this.badgeContainer = undefined }
     if (this.synergyText) { this.synergyText.destroy(); this.synergyText = undefined }
-    const currentMap = this.mapManager.getCurrentMap()
-
-    const hudFontSize = this.isMobile ? 11 : 20
-    const hudText = this.isMobile
-      ? `${currentMap.name} · ${this.mapManager.getMedalCount()}/8🏅`
-      : `Mapa ${currentMap.id}: ${currentMap.name}\n${currentMap.routeName} → ${currentMap.gymLeaderName}\nMedallas: ${this.mapManager.getMedalCount()}/8`
-    this.hudText = this.add.text(this.scale.width - 10, 6, hudText, {
-      font: `${hudFontSize}px Arial`,
-      color: '#ffffff',
-      backgroundColor: '#000000',
-      padding: { x: this.isMobile ? 6 : 12, y: this.isMobile ? 4 : 8 },
-      align: 'right'
-    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100)
-
-    // Draw collected badge sprites
-    const leaders = Object.keys(BADGE_SPRITES)
-    const collected = new Set(this.mapManager.collectedMedals.map((m: any) => m.gymLeaderName))
-    const badgeSize = this.isMobile ? 16 : 28
-    const gap = this.isMobile ? 2 : 4
-    const totalW = leaders.length * (badgeSize + gap) - gap
-    const bx = this.scale.width - 10 - totalW
-    const by = this.isMobile ? 32 : 110
-    this.badgeContainer = this.add.container(0, 0).setDepth(100).setScrollFactor(0)
-    leaders.forEach((name, i) => {
-      const key = badgeSpriteKey(name)
-      const x = bx + i * (badgeSize + gap)
-      const y = by
-      const alpha = collected.has(name) ? 1 : 0.25
-      const g = this.add.graphics().setScrollFactor(0)
-      g.fillStyle(collected.has(name) ? 0xffd700 : 0x444444, alpha)
-      g.fillCircle(x + badgeSize / 2, y + badgeSize / 2, badgeSize / 2)
-      this.badgeContainer!.add(g)
-      if (this.textures.exists(key)) {
-        const img = this.add.image(x + badgeSize / 2, y + badgeSize / 2, key)
-          .setDisplaySize(badgeSize, badgeSize).setAlpha(alpha).setScrollFactor(0)
-        this.badgeContainer!.add(img)
-      } else {
-        console.warn('[Badge] texture missing:', key)
-      }
-    })
-
-    // Roguelike mode indicator + active synergy
-    if (this.roguelikeMode) {
-      const syn = this.getActiveSynergy()
-      const clsLabel = this.trainerClass ? ` · ${this.trainerClass.toUpperCase()}` : ''
-      const synLabel = syn ? `\n◈ ${syn.name}` : ''
-      this.synergyText = this.add.text(this.scale.width - 20, 155,
-        `◆ PURO ROGUELIKE${clsLabel}${synLabel}`, {
-        font: '14px Arial',
-        color: syn ? syn.color : '#ff4444',
-        backgroundColor: '#000000',
-        padding: { x: 8, y: 4 },
-        align: 'right'
-      }).setOrigin(1, 0).setScrollFactor(0).setDepth(100)
-    }
-
-    this.drawTeamToggle()
+    this.renderRightPanel()
     this.drawTeamPanel()
+    this.time.delayedCall(50, () => this.positionHtmlPanels())
   }
 
-  private drawTeamToggle() {
-    if (this.teamToggleBtn) this.teamToggleBtn.destroy()
-    if (!this.isMobile) return
-
-    const x0 = this.SLOT_X0
-    const size = 36
-    const btn = this.add.container(x0 + size / 2, 10).setDepth(200).setScrollFactor(0)
-    const bg = this.add.graphics()
-    bg.fillStyle(0x000000, 0.75)
-    bg.fillRoundedRect(-size / 2, 0, size, size, 6)
-    bg.lineStyle(1, 0xffd700, 1)
-    bg.strokeRoundedRect(-size / 2, 0, size, size, 6)
-    btn.add(bg)
-    const label = this.add.text(0, size / 2, this.teamPanelCollapsed ? '▶' : '◀', {
-      font: 'bold 14px Arial', color: '#ffffff'
-    }).setOrigin(0.5)
-    btn.add(label)
-    btn.setSize(size, size).setInteractive({ useHandCursor: true })
-    btn.on('pointerdown', () => {
-      this.teamPanelCollapsed = !this.teamPanelCollapsed
-      this.updateHud()
-    })
-    this.teamToggleBtn = btn
+  private clearSidePanels() {
+    const lp = document.getElementById('left-panel')
+    const rp = document.getElementById('right-panel')
+    if (lp) lp.innerHTML = ''
+    if (rp) rp.innerHTML = ''
   }
+
+  private positionHtmlPanels() {
+    const canvas = this.game.canvas
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = rect.width / this.scale.width
+    const scaleY = rect.height / this.scale.height
+
+    const mapScreenX = rect.left + this.MAP_X * scaleX
+    const mapScreenRight = rect.left + (this.MAP_X + this.MAP_W) * scaleX
+    const topY = rect.top + 12 * scaleY
+
+    const lp = document.getElementById('left-panel') as HTMLElement
+    const rp = document.getElementById('right-panel') as HTMLElement
+    if (lp) {
+      const lpW = lp.offsetWidth || 140
+      lp.style.left = `${mapScreenX - lpW - 8}px`
+      lp.style.top = `${topY}px`
+      lp.style.right = 'auto'
+    }
+    if (rp) {
+      rp.style.left = `${mapScreenRight + 8}px`
+      rp.style.right = 'auto'
+      rp.style.top = `${topY}px`
+    }
+  }
+
+  private drawRightButtons(_cx: number, _startY: number) { /* no-op: HTML */ }
+
+  private drawTeamToggle() { /* no-op: HTML */ }
 
   private drawTeamPanel() {
-    this.slotZones.forEach(z => z.destroy())
-    this.slotZones = []
-    this.statsTooltip?.destroy()
-    this.statsTooltip = undefined
-    if (this.teamPanel) this.teamPanel.destroy()
+    const lp = document.getElementById('left-panel')
+    if (!lp) return
+    lp.innerHTML = ''
 
-    if (this.isMobile && this.teamPanelCollapsed) return
+    let dragSrcIdx = -1
 
-    const slots = 6
-    const slotH = this.SLOT_H
-    const slotW = this.SLOT_W
-    const x0 = this.SLOT_X0
-    const y0 = this.isMobile ? 50 : this.SLOT_Y0
-    const container = this.add.container(0, 0).setDepth(100).setScrollFactor(0)
-
-    for (let i = 0; i < slots; i++) {
-      const y = y0 + i * slotH
-      const bg = this.add.graphics()
-      bg.fillStyle(0x000000, 0.75)
-      bg.fillRoundedRect(x0, y, slotW, slotH - 8, 12)
-      bg.lineStyle(1, 0x444444, 1)
-      bg.strokeRoundedRect(x0, y, slotW, slotH - 8, 12)
-      container.add(bg)
-
+    for (let i = 0; i < 6; i++) {
       const p = this.playerTeam[i]
+      const card = document.createElement('div')
+      card.className = 'team-card' + (p ? '' : ' empty')
+      card.dataset.idx = String(i)
+
       if (!p) {
-        const empty = this.add.text(x0 + slotW / 2, y + (slotH - 8) / 2, '—', {
-          font: '24px Arial', color: '#555555'
-        }).setOrigin(0.5)
-        container.add(empty)
+        card.textContent = '—'
       } else {
-        const sKey = spriteKey(p.id, false)
-        const spriteSize = this.isMobile ? 42 : 68
-        const spriteOffX = this.isMobile ? 22 : 36
-        const spriteOffY = this.isMobile ? 34 : 54
-        if (this.textures.exists(sKey)) {
-          const img = this.add.image(x0 + spriteOffX, y + spriteOffY, sKey).setDisplaySize(spriteSize, spriteSize)
-          container.add(img)
-        }
-
-        const infoX = this.isMobile ? x0 + 48 : x0 + 76
-        const info = this.add.text(infoX, y + 8, `${p.name}\nNv.${p.level}`, {
-          font: `${this.isMobile ? 9 : 12}px Arial`, color: '#ffffff'
-        })
-        container.add(info)
-
-        if (p.heldItem) {
-          const iKey = itemSpriteKey(p.heldItem)
-          if (this.textures.exists(iKey)) {
-            const itemImg = this.add.image(x0 + slotW - 10, y + 10, iKey).setDisplaySize(18, 18)
-            container.add(itemImg)
-          }
-        }
-
         const hpRatio = Math.max(0, p.hp / p.maxHp)
-        const hpBar = this.add.graphics()
-        const barX = x0 + 5
-        const barY = y + slotH - 12
-        const barW = slotW - 10
-        hpBar.fillStyle(0x222222, 1)
-        hpBar.fillRect(barX, barY, barW, 6)
-        const hpColor = hpRatio > 0.5 ? 0x4CAF50 : hpRatio > 0.2 ? 0xFFC107 : 0xF44336
-        hpBar.fillStyle(hpColor, 1)
-        hpBar.fillRect(barX, barY, barW * hpRatio, 6)
-        container.add(hpBar)
+        const hpColor = hpRatio > 0.5 ? '#4CAF50' : hpRatio > 0.2 ? '#FFC107' : '#F44336'
+        const sUrl = spriteUrl(p.id, false)
+        card.innerHTML = `
+          <img src="${sUrl}" alt="${p.name}" draggable="false" />
+          <div class="slot-info">
+            <div class="slot-name">${p.name}</div>
+            <div class="slot-level">Nv.${p.level}</div>
+            <div class="slot-hp-wrap"><div class="slot-hp-bar" style="width:${Math.round(hpRatio*100)}%;background:${hpColor}"></div></div>
+          </div>`
+        card.draggable = true
+        card.addEventListener('dragstart', (e) => {
+          dragSrcIdx = i
+          card.style.opacity = '0.4'
+          e.dataTransfer!.effectAllowed = 'move'
+        })
+        card.addEventListener('dragend', () => { card.style.opacity = '' })
+
+        card.addEventListener('mouseenter', (e) => {
+          let tip = document.getElementById('team-stats-tip')
+          if (!tip) { tip = document.createElement('div'); tip.id = 'team-stats-tip'; document.body.appendChild(tip) }
+          tip.style.cssText = `position:fixed;background:#111122ee;border:2px solid #FFD700;padding:10px 14px;color:#fff;font:7px 'Press Start 2P',monospace;pointer-events:none;z-index:9999;white-space:pre;line-height:2`
+          const heldLine = (p as any).heldItem ? `\n🎒 ${(p as any).heldItem}` : ''
+          tip.textContent = `${p.name} Nv.${p.level}\n❤ PS: ${p.hp}/${p.maxHp}\n⚔ ATK: ${p.attack}\n🛡 DEF: ${p.defense}\n💨 VEL: ${p.speed}${heldLine}`
+          tip.style.left = (e.clientX + 14) + 'px'
+          tip.style.top = (e.clientY - 10) + 'px'
+          tip.style.display = 'block'
+        })
+        card.addEventListener('mousemove', (e) => {
+          const tip = document.getElementById('team-stats-tip')
+          if (tip) { tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY - 10) + 'px' }
+        })
+        card.addEventListener('mouseleave', () => {
+          const tip = document.getElementById('team-stats-tip')
+          if (tip) tip.style.display = 'none'
+        })
       }
 
-      // Drag zone (scene-level, not inside container)
-      const zone = this.add.zone(x0 + slotW / 2, y + (slotH - 8) / 2, slotW, slotH - 8)
-        .setScrollFactor(0).setDepth(101).setInteractive({ useHandCursor: this.playerTeam[i] !== undefined })
-      this.input.setDraggable(zone)
-      zone.setData('idx', i)
-      if (p) {
-        zone.on('pointerover', () => {
-          this.statsTooltip?.destroy()
-          const lines = [
-            `PS: ${p.hp}/${p.maxHp}`,
-            `Atq: ${p.attack}`,
-            `Def: ${p.defense}`,
-            `Vel: ${p.speed}`,
-            `Exp: ${p.experience}/${p.level * 20}`,
-          ]
-          if (p.heldItem) lines.push(`Item: ${p.heldItem}`)
-          if (p.traits.length > 0) lines.push(`◆ ${p.traits.join(', ')}`)
-          const tx = x0 + slotW + 6
-          const ty = y
-          this.statsTooltip = this.add.text(tx, ty, lines.join('\n'), {
-            font: '11px Arial', color: '#ffffff',
-            backgroundColor: '#111111',
-            padding: { x: 6, y: 4 }
-          }).setDepth(300).setScrollFactor(0)
-        })
-        zone.on('pointerout', () => {
-          this.statsTooltip?.destroy()
-          this.statsTooltip = undefined
-        })
+      card.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer!.dropEffect = 'move'; card.style.outline = '2px solid #FFD700' })
+      card.addEventListener('dragleave', () => { card.style.outline = '' })
+      card.addEventListener('drop', (e) => {
+        e.preventDefault()
+        card.style.outline = ''
+        const dstIdx = i
+        if (dragSrcIdx === -1 || dragSrcIdx === dstIdx) return
+        if (!this.playerTeam[dragSrcIdx] || !this.playerTeam[dstIdx]) return
+        const tmp = this.playerTeam[dragSrcIdx]
+        this.playerTeam[dragSrcIdx] = this.playerTeam[dstIdx]
+        this.playerTeam[dstIdx] = tmp
+        dragSrcIdx = -1
+        this.drawTeamPanel()
+      })
+
+      lp.appendChild(card)
+    }
+  }
+
+  private renderRightPanel() {
+    const rp = document.getElementById('right-panel')
+    if (!rp) return
+    rp.innerHTML = ''
+    const currentMap = this.mapManager.getCurrentMap()
+    const leaders = Object.keys(BADGE_SPRITES)
+    const collected = new Set(this.mapManager.collectedMedals.map((m: any) => m.gymLeaderName))
+
+    // Map info
+    const infoSec = document.createElement('div')
+    infoSec.className = 'panel-section'
+    infoSec.innerHTML = `<div class="panel-section-label">ITEMS</div>
+      <div class="panel-info">Mapa ${currentMap.id} · ${currentMap.gymLeaderName}<br>${this.mapManager.getMedalCount()}/8 Medallas</div>`
+    rp.appendChild(infoSec)
+
+    // Badges
+    const badgeSec = document.createElement('div')
+    badgeSec.className = 'panel-section'
+    const badgeLabel = document.createElement('div')
+    badgeLabel.className = 'panel-section-label'
+    badgeLabel.textContent = 'MEDALLAS'
+    badgeSec.appendChild(badgeLabel)
+    const grid = document.createElement('div')
+    grid.className = 'badge-grid'
+    leaders.forEach(name => {
+      const key = badgeSpriteKey(name)
+      const item = document.createElement('div')
+      item.className = 'badge-item'
+      const alpha = collected.has(name) ? '1' : '0.2'
+      item.style.background = collected.has(name) ? '#ffd700' : '#333'
+      item.style.opacity = alpha
+      const texture = this.textures.get(key)
+      if (texture && texture.key !== '__MISSING') {
+        const src = (texture.getSourceImage() as HTMLImageElement).src
+        item.innerHTML = `<img src="${src}" alt="${name}" />`
       }
-      this.slotZones.push(zone)
+      grid.appendChild(item)
+    })
+    badgeSec.appendChild(grid)
+    rp.appendChild(badgeSec)
+
+    // Roguelike synergy
+    if (this.roguelikeMode) {
+      const syn = this.getActiveSynergy()
+      const synDiv = document.createElement('div')
+      synDiv.className = 'synergy-badge'
+      synDiv.style.color = syn ? syn.color : '#ff4444'
+      const clsLabel = this.trainerClass ? this.trainerClass.toUpperCase() : ''
+      synDiv.textContent = `◆ ROGUELIKE ${clsLabel}${syn ? ' · ' + syn.name : ''}`
+      rp.appendChild(synDiv)
     }
 
-    this.setupSlotDrag()
-    this.teamPanel = container
+    const mkIconBtn = (imgSrc: string, label: string, active = false) => {
+      const btn = document.createElement('button')
+      btn.className = `panel-btn${active ? ' speed-active' : ''}`
+      btn.innerHTML = `<img src="${imgSrc}" style="width:28px;height:28px;image-rendering:pixelated;vertical-align:middle;margin-right:6px;">${label}`
+      return btn
+    }
+
+    // Speed toggle
+    const speedBtn = mkIconBtn('/assets/trainers/bici.png', this.battleSpeed === 2 ? 'x2 RAPIDO' : 'x1 NORMAL', this.battleSpeed === 2)
+    speedBtn.onclick = () => { this.battleSpeed = this.battleSpeed === 2 ? 1 : 2; this.renderRightPanel() }
+    rp.appendChild(speedBtn)
+
+    // Bag button
+    const bagBtn = mkIconBtn('/assets/Mochila_DP_(chico).png', 'MOCHILA')
+    bagBtn.onclick = () => {
+      if (this.eventOccurred) return
+      this.setSceneUiVisible(false)
+      this.scene.pause()
+      this.scene.launch('BagScene', { playerTeam: this.playerTeam, playerBag: this.playerBag, onComplete: () => { this.setSceneUiVisible(true); this.updateHud() } })
+    }
+    rp.appendChild(bagBtn)
+
+    // Menu button
+    const menuBtn = mkIconBtn('/assets/80px-Cuerda_huida_EP.png', 'MENU')
+    menuBtn.onclick = () => { if (!this.roguelikeMode) this.registry.set('hasSavedGame', true); this.scene.start('MainMenuScene') }
+    rp.appendChild(menuBtn)
   }
 
-  private setupSlotDrag() {
-    this.input.off('dragstart')
-    this.input.off('drag')
-    this.input.off('dragend')
-
-    this.input.on('dragstart', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Zone) => {
-      const idx = gameObject.getData('idx') as number
-      if (this.playerTeam[idx] === undefined) return
-      this.dragFromIdx = idx
-
-      const p = this.playerTeam[idx]
-      const ghost = this.add.container(0, 0).setDepth(200).setScrollFactor(0)
-      const bg = this.add.graphics()
-      bg.fillStyle(0x333366, 0.92)
-      bg.fillRoundedRect(-58, -44, 116, 88, 10)
-      bg.lineStyle(2, 0xFFD700, 1)
-      bg.strokeRoundedRect(-58, -44, 116, 88, 10)
-      ghost.add(bg)
-      const sKey = spriteKey(p.id, false)
-      if (this.textures.exists(sKey)) {
-        ghost.add(this.add.image(0, 0, sKey).setDisplaySize(60, 60))
-      }
-      this.dragGhost = ghost
-    })
-
-    this.input.on('drag', (pointer: Phaser.Input.Pointer) => {
-      if (this.dragGhost) this.dragGhost.setPosition(pointer.x, pointer.y)
-    })
-
-    this.input.on('dragend', (pointer: Phaser.Input.Pointer) => {
-      if (this.dragGhost) { this.dragGhost.destroy(); this.dragGhost = undefined }
-      const from = this.dragFromIdx
-      this.dragFromIdx = -1
-      if (from < 0) return
-
-      const to = this.slotZones.findIndex(z => {
-        const b = z.getBounds()
-        return b.contains(pointer.x, pointer.y)
-      })
-      if (to >= 0 && to !== from && this.playerTeam[from] && this.playerTeam[to]) {
-        const tmp = this.playerTeam[from]
-        this.playerTeam[from] = this.playerTeam[to]
-        this.playerTeam[to] = tmp
-        this.drawTeamPanel()
-      }
-    })
-  }
+  private setupSlotDrag() { /* drag moved to HTML panel */ }
 
   private onNodeClick(node: MapNode) {
     if (this.eventOccurred) return
     if (!this.platformManager || !this.eventPopup) return
 
     this.eventOccurred = true
+    this.setSceneUiVisible(false)
     this.platformManager.setCurrentNode(node.id)
 
     const currentMap = this.mapManager.getCurrentMap()
@@ -706,7 +565,8 @@ export default class GameScene extends Phaser.Scene {
       currentMap.bossMaxLevel,
       currentMap.wildMinLevel,
       currentMap.wildMaxLevel,
-      currentMap.ghostOnly
+      currentMap.ghostOnly,
+      this.mapManager.currentMapId
     )
 
     if (result.requiresBattle && result.enemyTeam && result.battleType) {
@@ -720,9 +580,9 @@ export default class GameScene extends Phaser.Scene {
         playerBag: this.playerBag,
         synergyBonuses: syn ? { atk: syn.atkBonus, def: syn.defBonus, spd: syn.spdBonus } : undefined,
         battleSpeed: this.battleSpeed,
-        backgroundKey: result.type === PlatformEventType.DOUBLE_BATTLE ? 'dobles-bg' : undefined,
+        backgroundKey: result.isDouble ? 'dobles-bg' : undefined,
         isDouble: result.isDouble ?? false,
-        onComplete: (won: boolean) => this.onBattleEnd(won, result.battleType!)
+        onComplete: (won: boolean) => this.onBattleEnd(won, result.battleType!, result.isDouble ?? false)
       })
     } else if (result.requiresItemPicker) {
       this.scene.pause()
@@ -730,6 +590,7 @@ export default class GameScene extends Phaser.Scene {
         playerTeam: this.playerTeam,
         playerBag: this.playerBag,
         onComplete: (picked?: Item) => {
+          this.setSceneUiVisible(true)
           this.eventOccurred = false
           if (picked) this.showToast(`¡${picked.name} añadido a la mochila!`)
           this.updateHud()
@@ -741,6 +602,7 @@ export default class GameScene extends Phaser.Scene {
         playerTeam: this.playerTeam,
         options: result.captureOptions,
         onComplete: (caught?: Pokemon) => {
+          this.setSceneUiVisible(true)
           this.eventOccurred = false
           if (caught) this.showToast(`¡${caught.name} capturado!`)
           this.updateHud()
@@ -754,6 +616,7 @@ export default class GameScene extends Phaser.Scene {
         onComplete: (captureOptions?: Pokemon[]) => {
           this.eventOccurred = false
           if (!captureOptions || captureOptions.length === 0) {
+            this.setSceneUiVisible(true)
             this.updateHud()
             return
           }
@@ -762,6 +625,7 @@ export default class GameScene extends Phaser.Scene {
             playerTeam: this.playerTeam,
             options: captureOptions,
             onComplete: (caught?: Pokemon) => {
+              this.setSceneUiVisible(true)
               this.eventOccurred = false
               if (caught) this.showToast(`¡${caught.name} capturado!`)
               this.updateHud()
@@ -775,6 +639,7 @@ export default class GameScene extends Phaser.Scene {
         playerTeam: this.playerTeam,
         playerBag: this.playerBag,
         onComplete: () => {
+          this.setSceneUiVisible(true)
           this.eventOccurred = false
           this.showToast('🍓 ¡Recompensa de Árbol de Bayas obtenida!')
           this.updateHud()
@@ -786,6 +651,7 @@ export default class GameScene extends Phaser.Scene {
       const data: DojoSceneData = {
         playerTeam: this.playerTeam,
         onComplete: () => {
+          this.setSceneUiVisible(true)
           this.eventOccurred = false
           this.showToast('🥋 ¡Entrenamiento completado! Stats mejorados.')
           this.updateHud()
@@ -798,6 +664,7 @@ export default class GameScene extends Phaser.Scene {
         playerTeam: this.playerTeam,
         difficulty: currentMap.difficulty,
         onComplete: (newTeam: Pokemon[]) => {
+          this.setSceneUiVisible(true)
           this.playerTeam = newTeam
           this.eventOccurred = false
           this.showToast('🔬 ¡El Profesor te ayudó!')
@@ -827,6 +694,7 @@ export default class GameScene extends Phaser.Scene {
                 playerTeam: this.playerTeam,
                 options: [legendary],
                 onComplete: (caught?: Pokemon) => {
+                  this.setSceneUiVisible(true)
                   this.eventOccurred = false
                   if (caught) this.showToast(`✨ ¡${caught.name} legendario capturado!`)
                   this.updateHud()
@@ -839,14 +707,17 @@ export default class GameScene extends Phaser.Scene {
         })
       })
     } else if (result.type === 'pokemon_center') {
+      this.setSceneUiVisible(true)
       this.showToast('¡Centro Pokémon! Equipo curado al completo.')
       this.eventOccurred = false
       this.updateHud()
     } else if (result.type === 'memorial' || result.type === 'narrative') {
+      this.setSceneUiVisible(true)
       this.showToast(result.message)
       this.eventOccurred = false
       this.updateHud()
     } else {
+      this.setSceneUiVisible(true)
       this.eventPopup.show(result, () => {
         this.eventOccurred = false
         this.updateHud()
@@ -854,7 +725,17 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  private onBattleEnd(won: boolean, battleType: 'wild' | 'trainer' | 'boss') {
+  private setSceneUiVisible(visible: boolean) {
+    this.cameras.main.setVisible(visible)
+    const display = visible ? '' : 'none'
+    const lp = document.getElementById('left-panel')
+    const rp = document.getElementById('right-panel')
+    if (lp) lp.style.display = display
+    if (rp) rp.style.display = display
+  }
+
+  private onBattleEnd(won: boolean, battleType: 'wild' | 'trainer' | 'boss', isDouble: boolean = false) {
+    this.setSceneUiVisible(true)
     this.eventOccurred = false
 
     if (!won) {
@@ -870,7 +751,7 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    const { message: rewardMsg, pendingEvolutions } = this.eventManager.applyBattleReward(this.playerTeam, battleType)
+    const { message: rewardMsg, pendingEvolutions } = this.eventManager.applyBattleReward(this.playerTeam, battleType, isDouble)
 
     if (battleType === 'boss') {
       const currentMap = this.mapManager.getCurrentMap()

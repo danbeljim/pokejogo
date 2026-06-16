@@ -33,15 +33,15 @@ export default class EventManager {
   wildPool: number[] | undefined = undefined
   currentFloor: number = 0
 
-  handleEvent(platform: MapNode, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string, bossMaxLevel: number = 14, wildMin: number = 3, wildMax: number = 6, ghostOnly: boolean = false): EventResult {
+  handleEvent(platform: MapNode, playerTeam: Pokemon[], difficulty: number = 1, gymName?: string, bossMaxLevel: number = 14, wildMin: number = 3, wildMax: number = 6, ghostOnly: boolean = false, mapId: number = 0): EventResult {
     const trainerMax = Math.max(3, Math.floor(bossMaxLevel * 0.70))
     switch (platform.eventType) {
       case PlatformEventType.POKEMON_CAPTURE:
         return this.handleCapture(platform, playerTeam, wildMin, wildMax, ghostOnly)
       case PlatformEventType.WILD_POKEMON:
-        return this.prepareWildBattle(platform, wildMin, wildMax)
+        return this.prepareWildBattle(platform, wildMin, wildMax, mapId)
       case PlatformEventType.TRAINER_BATTLE:
-        return this.prepareTrainerBattle(platform, difficulty, trainerMax)
+        return this.prepareTrainerBattle(platform, difficulty, trainerMax, mapId)
       case PlatformEventType.ITEM_PICKUP:
         return this.handleItemPickup(platform)
       case PlatformEventType.BOSS:
@@ -55,13 +55,13 @@ export default class EventManager {
       case PlatformEventType.NARRATIVE:
         return this.handleNarrative()
       case PlatformEventType.DOUBLE_BATTLE:
-        return this.prepareDoubleBattle(difficulty, trainerMax)
+        return this.prepareDoubleBattle(platform, difficulty, trainerMax)
       case PlatformEventType.BERRY_TREE:
         return { type: PlatformEventType.BERRY_TREE, message: '¡Un Árbol de Bayas!', requiresBerryTree: true }
       case PlatformEventType.DOJO:
         return { type: PlatformEventType.DOJO, message: '¡Bienvenido al Dojo!', requiresDojo: true }
       case PlatformEventType.PROFESSOR:
-        return { type: PlatformEventType.PROFESSOR, message: '¡El Profesor te espera!', requiresProfessor: true }
+        return { type: PlatformEventType.PROFESSOR, message: '¡El Científico te espera!', requiresProfessor: true }
       case PlatformEventType.PORTAL:
         return this.preparePortalBattle(playerTeam)
       default:
@@ -102,17 +102,26 @@ export default class EventManager {
     }
   }
 
-  private prepareWildBattle(platform: MapNode, wildMin: number, wildMax: number): EventResult {
+  private prepareWildBattle(platform: MapNode, wildMin: number, wildMax: number, mapId: number = 0): EventResult {
     const level = platform.eventData?.level || (wildMin + Math.floor(Math.random() * (wildMax - wildMin + 1)))
     const wild = createWildPokemon(level, platform.eventData?.pokemonId, true)
     applyEnemyScale(wild, this.currentFloor)
     if (this.roguelikeMode) assignRogueTraits(wild, false)
+    const isDouble = mapId >= 1 && Math.random() < 0.35
+    const enemyTeam: Pokemon[] = [wild]
+    if (isDouble) {
+      const wild2 = createWildPokemon(level, undefined, true)
+      applyEnemyScale(wild2, this.currentFloor)
+      if (this.roguelikeMode) assignRogueTraits(wild2, false)
+      enemyTeam.push(wild2)
+    }
     return {
       type: PlatformEventType.WILD_POKEMON,
-      message: `¡Apareció ${wild.name} salvaje!`,
+      message: isDouble ? `¡Aparecieron ${wild.name} y otro Pokémon salvajes!` : `¡Apareció ${wild.name} salvaje!`,
       requiresBattle: true,
-      enemyTeam: [wild],
-      battleType: 'wild'
+      enemyTeam,
+      battleType: 'wild',
+      isDouble
     }
   }
 
@@ -125,19 +134,23 @@ export default class EventManager {
     })
   }
 
-  private prepareTrainerBattle(platform: MapNode, difficulty: number, trainerMax: number): EventResult {
-    const teamSize = Math.min(1 + Math.floor(difficulty / 2), 3)
-    const team: Pokemon[] = this.buildTeamFromPool(teamSize, Math.max(2, Math.floor(trainerMax * 0.8)))
+  private prepareTrainerBattle(platform: MapNode, difficulty: number, trainerMax: number, mapId: number = 0): EventResult {
+    const isDouble = mapId >= 1 && Math.random() < 0.50
+    const teamSize = isDouble ? 2 : Math.min(1 + Math.floor(difficulty / 2), 3)
+    const team: Pokemon[] = platform.eventData?.team?.length
+      ? platform.eventData.team.slice(0, isDouble ? 2 : undefined)
+      : this.buildTeamFromPool(teamSize, Math.max(2, Math.floor(trainerMax * 0.8)))
     team.forEach(p => {
       applyEnemyScale(p, this.currentFloor)
       if (this.roguelikeMode) assignRogueTraits(p, false)
     })
     return {
       type: PlatformEventType.TRAINER_BATTLE,
-      message: `¡Un Entrenador te reta!`,
+      message: isDouble ? '⚔️ ¡COMBATE DOBLE! Dos entrenadores te desafían.' : `¡Un Entrenador te reta!`,
       requiresBattle: true,
       enemyTeam: team,
-      battleType: 'trainer'
+      battleType: 'trainer',
+      isDouble
     }
   }
 
@@ -189,9 +202,15 @@ export default class EventManager {
     return { type: PlatformEventType.NARRATIVE, message: msg }
   }
 
-  private prepareDoubleBattle(difficulty: number, trainerMax: number): EventResult {
+  private prepareDoubleBattle(platform: MapNode, difficulty: number, trainerMax: number): EventResult {
     const teamSize = Math.min(2 + Math.floor(difficulty / 2), 4)
-    const team: Pokemon[] = this.buildTeamFromPool(Math.max(2, teamSize), Math.max(2, Math.floor(trainerMax * 0.85)))
+    const prebuilt = [
+      ...(platform.eventData?.team  ?? []),
+      ...(platform.eventData?.team2 ?? []),
+    ]
+    const team: Pokemon[] = prebuilt.length >= 2
+      ? prebuilt.slice(0, 2)
+      : this.buildTeamFromPool(Math.max(2, teamSize), Math.max(2, Math.floor(trainerMax * 0.85)))
     team.slice(0, 2).forEach(p => applyEnemyScale(p, this.currentFloor))
     return {
       type: PlatformEventType.DOUBLE_BATTLE,
@@ -216,8 +235,8 @@ export default class EventManager {
     }
   }
 
-  applyBattleReward(playerTeam: Pokemon[], battleType: 'wild' | 'trainer' | 'boss'): { message: string; pendingEvolutions: Pokemon[] } {
-    const baseGain = battleType === 'wild' ? 1 : battleType === 'trainer' ? 2 : 3
+  applyBattleReward(playerTeam: Pokemon[], battleType: 'wild' | 'trainer' | 'boss', isDouble: boolean = false): { message: string; pendingEvolutions: Pokemon[] } {
+    const baseGain = isDouble ? 3 : battleType === 'wild' ? 1 : battleType === 'trainer' ? 2 : 3
     const levelGain = (this.roguelikeMode && this.trainerClass === 'luchador')
       ? Math.ceil(baseGain * 1.5)
       : baseGain

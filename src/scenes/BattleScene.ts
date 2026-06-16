@@ -53,8 +53,13 @@ export default class BattleScene extends Phaser.Scene {
   private player2HpBar?: Phaser.GameObjects.Graphics
   private enemy2HpText?: Phaser.GameObjects.Text
   private enemy2HpBar?: Phaser.GameObjects.Graphics
-  private pendingMove: string = ''
   private targetButtons: Phaser.GameObjects.Text[] = []
+  // Double input phases
+  private dblPhase: 'p1' | 'p2' | 'resolving' = 'p1'
+  private dblP1Move: string = ''
+  private dblP1Target: Pokemon | null = null
+  private dblP2Move: string = ''
+  private dblP2Target: Pokemon | null = null
 
   // Layout anchors — computed in create()
   private W = 1600
@@ -92,8 +97,12 @@ export default class BattleScene extends Phaser.Scene {
     this.player2HpBar = undefined
     this.enemy2HpText = undefined
     this.enemy2HpBar = undefined
-    this.pendingMove = ''
     this.targetButtons = []
+    this.dblPhase = 'p1'
+    this.dblP1Move = ''
+    this.dblP1Target = null
+    this.dblP2Move = ''
+    this.dblP2Target = null
   }
 
   create() {
@@ -133,10 +142,12 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isDouble) {
       // 2 enemy sprites top
       this.drawSprite(this.W * 0.58, this.H * 0.28, this.enemyPokemon, false)
+      const e1SpriteRef = this.enemySpriteRef  // save before second drawSprite overwrites it
       this.enemyHpText = this.add.text(this.W * 0.32, this.H * 0.10, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
       this.enemyHpBar = this.add.graphics()
       if (this.dblEnemy2) {
         this.enemySprite2 = this.drawSprite(this.W * 0.82, this.H * 0.28, this.dblEnemy2, false)
+        this.enemySpriteRef = e1SpriteRef  // restore: drawSprite overwrote it with sprite2
         this.enemy2HpText = this.add.text(this.W * 0.60, this.H * 0.10, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
         this.enemy2HpBar = this.add.graphics()
       }
@@ -292,10 +303,18 @@ export default class BattleScene extends Phaser.Scene {
     this.actionButtons.forEach(b => b.destroy())
     this.actionButtons = []
 
-    const moves = this.playerPokemon.moves
+    const actor = (this.isDouble && this.dblPhase === 'p2' && this.dblPlayer2) ? this.dblPlayer2 : this.playerPokemon
+    const moves = actor.moves
     const yStart = this.H * 0.78
     const btnW = this.W * 0.14
     const startX = this.W * 0.08
+
+    if (this.isDouble) {
+      const label = this.dblPhase === 'p2'
+        ? `¿Qué usa ${actor.name}? (2°)`
+        : `¿Qué usa ${actor.name}? (1°)`
+      this.log(label)
+    }
 
     moves.forEach((moveName, i) => {
       const move = getMove(moveName)
@@ -314,8 +333,6 @@ export default class BattleScene extends Phaser.Scene {
       btn.on('pointerout', () => btn.setColor(color))
       this.actionButtons.push(btn)
     })
-
-
   }
 
   private log(msg: string) {
@@ -423,7 +440,7 @@ export default class BattleScene extends Phaser.Scene {
     const synDefMul = (isPlayer && syn?.def) ? syn.def : 1
     const effAtk = attacker.attack * synAtkMul
     const effDef = defender.defense / synDefMul
-    const base = (effAtk * move.power * attacker.level) / ((effDef + 20) * 80)
+    const base = (effAtk * move.power * attacker.level) / ((effDef + 20) * 30)
     const variance = 0.85 + Math.random() * 0.3
     const relic = attacker.heldItem
     const relicMul = (relic === 'choice-band' || relic === 'life-orb') ? 1.3 : 1
@@ -536,29 +553,50 @@ export default class BattleScene extends Phaser.Scene {
   private playerAttackDouble(moveName: string) {
     if (this.turnLock) return
 
-    // Choice Band
-    const relic = this.playerPokemon.heldItem
-    if (relic === 'choice-band' && this.lastPlayerMove && moveName !== this.lastPlayerMove) moveName = this.lastPlayerMove
+    if (this.dblPhase === 'p1') {
+      // Choice Band on P1
+      const relic = this.playerPokemon.heldItem
+      if (relic === 'choice-band' && this.lastPlayerMove && moveName !== this.lastPlayerMove) moveName = this.lastPlayerMove
+      this.dblP1Move = moveName
 
-    // If both enemies alive, ask player to pick target
-    const e1alive = this.enemyPokemon.isAlive()
-    const e2alive = this.dblEnemy2?.isAlive() ?? false
-    if (e1alive && e2alive) {
-      this.pendingMove = moveName
-      this.showTargetButtons()
+      const e1alive = this.enemyPokemon.isAlive()
+      const e2alive = this.dblEnemy2?.isAlive() ?? false
+      if (e1alive && e2alive) {
+        this.showTargetButtons('p1')
+      } else {
+        this.dblP1Target = e1alive ? this.enemyPokemon : (this.dblEnemy2 ?? null)
+        this.advanceToP2OrResolve()
+      }
       return
     }
 
-    // Only one enemy alive — attack it directly
-    const target = e1alive ? this.enemyPokemon : this.dblEnemy2
-    if (!target) { return }
-    this.executeDoubleAttack(moveName, target, relic)
+    if (this.dblPhase === 'p2') {
+      this.dblP2Move = moveName
+      const e1alive = this.enemyPokemon.isAlive()
+      const e2alive = this.dblEnemy2?.isAlive() ?? false
+      if (e1alive && e2alive) {
+        this.showTargetButtons('p2')
+      } else {
+        this.dblP2Target = e1alive ? this.enemyPokemon : (this.dblEnemy2 ?? null)
+        this.resolveDoubleTurn()
+      }
+    }
   }
 
-  private showTargetButtons() {
+  private advanceToP2OrResolve() {
+    if (this.dblPlayer2?.isAlive()) {
+      this.dblPhase = 'p2'
+      this.drawActions()
+    } else {
+      this.resolveDoubleTurn()
+    }
+  }
+
+  private showTargetButtons(phase: 'p1' | 'p2') {
     this.clearTargetButtons()
     this.actionButtons.forEach(b => b.setAlpha(0.4).disableInteractive())
-    this.log('¿A qué Pokémon atacas?')
+    const actor = phase === 'p1' ? this.playerPokemon : this.dblPlayer2!
+    this.log(`¿A qué Pokémon ataca ${actor.name}?`)
 
     const btnStyle = {
       font: `bold ${Math.round(this.H * 0.022)}px Arial`,
@@ -572,7 +610,8 @@ export default class BattleScene extends Phaser.Scene {
     b1.on('pointerdown', () => {
       this.clearTargetButtons()
       this.actionButtons.forEach(b => b.setAlpha(1).setInteractive({ useHandCursor: true }))
-      this.executeDoubleAttack(this.pendingMove, this.enemyPokemon, this.playerPokemon.heldItem)
+      if (phase === 'p1') { this.dblP1Target = this.enemyPokemon; this.advanceToP2OrResolve() }
+      else { this.dblP2Target = this.enemyPokemon; this.resolveDoubleTurn() }
     })
 
     const b2 = this.add.text(this.W * 0.65, this.H * 0.86, `⚔ ${this.dblEnemy2!.name}`, btnStyle)
@@ -580,7 +619,8 @@ export default class BattleScene extends Phaser.Scene {
     b2.on('pointerdown', () => {
       this.clearTargetButtons()
       this.actionButtons.forEach(b => b.setAlpha(1).setInteractive({ useHandCursor: true }))
-      this.executeDoubleAttack(this.pendingMove, this.dblEnemy2!, this.playerPokemon.heldItem)
+      if (phase === 'p1') { this.dblP1Target = this.dblEnemy2; this.advanceToP2OrResolve() }
+      else { this.dblP2Target = this.dblEnemy2; this.resolveDoubleTurn() }
     })
 
     this.targetButtons = [b1, b2]
@@ -591,49 +631,131 @@ export default class BattleScene extends Phaser.Scene {
     this.targetButtons = []
   }
 
-  private executeDoubleAttack(moveName: string, primaryTarget: Pokemon, relic: string | undefined) {
+  private resolveDoubleTurn() {
+    this.dblPhase = 'resolving'
     this.turnLock = true
-    this.lastPlayerMove = moveName
+    this.lastPlayerMove = this.dblP1Move
 
-    const move = getMove(moveName)
-    const { damage, effectiveness } = this.calcDamage(this.playerPokemon, primaryTarget, moveName, true)
-    primaryTarget.takeDamage(damage)
-    const effLabel = getEffectivenessLabel(effectiveness)
-    this.log(`¡${this.playerPokemon.name} usó ${move.nameEs}! ${damage} daño a ${primaryTarget.name}. ${effLabel}`)
-    const isE1 = primaryTarget === this.enemyPokemon
-    this.flashSprite(isE1 ? this.enemySpriteRef : this.enemySprite2, 0xff0000)
-    this.shakeCamera()
-    this.showDamageNumber(isE1 ? this.W * 0.58 : this.W * 0.82, this.H * 0.28, damage)
-
-    if (damage > 0 && this.playerPokemon.traits.includes('vampirico')) {
-      this.playerPokemon.heal(Math.max(1, Math.floor(damage * 0.15)))
+    type Action = {
+      attacker: Pokemon
+      target: Pokemon
+      moveName: string
+      isPlayer: boolean
+      spriteRef: () => Phaser.GameObjects.Image | undefined
+      targetSpriteRef: () => Phaser.GameObjects.Image | undefined
+      targetX: number
+      targetY: number
     }
-    if (relic === 'life-orb') {
-      this.playerPokemon.takeDamage(Math.max(1, Math.floor(this.playerPokemon.maxHp * 0.1)))
-    }
-    this.updateHpBars()
 
-    this.wait(700, () => {
-      // Player 2 auto-attacks the OTHER enemy
-      if (this.dblPlayer2?.isAlive()) {
-        const t2 = isE1 ? (this.dblEnemy2?.isAlive() ? this.dblEnemy2 : this.enemyPokemon.isAlive() ? this.enemyPokemon : null)
-                        : (this.enemyPokemon.isAlive() ? this.enemyPokemon : this.dblEnemy2?.isAlive() ? this.dblEnemy2 : null)
-        if (t2) {
-          const autoMove = this.dblPlayer2.moves[Math.floor(Math.random() * this.dblPlayer2.moves.length)] || 'Tackle'
-          const { damage: d2 } = this.calcDamage(this.dblPlayer2, t2, autoMove, true)
-          t2.takeDamage(d2)
-          this.log(`¡${this.dblPlayer2.name} usó ${getMove(autoMove).nameEs}! ${d2} daño a ${t2.name}.`)
-          this.flashSprite(t2 === this.enemyPokemon ? this.enemySpriteRef : this.enemySprite2, 0xff0000)
-          this.showDamageNumber(t2 === this.enemyPokemon ? this.W * 0.58 : this.W * 0.82, this.H * 0.28, d2)
-          this.updateHpBars()
-        }
+    const pickEnemyTarget = (prefer: Pokemon | null, fallback: Pokemon | null): Pokemon | null =>
+      prefer?.isAlive() ? prefer : fallback?.isAlive() ? fallback : null
+
+    const actions: Action[] = []
+
+    // P1
+    if (this.playerPokemon.isAlive() && this.dblP1Target?.isAlive()) {
+      const tgt = this.dblP1Target
+      const isE1 = tgt === this.enemyPokemon
+      actions.push({
+        attacker: this.playerPokemon, target: tgt, moveName: this.dblP1Move, isPlayer: true,
+        spriteRef: () => this.playerSpriteRef,
+        targetSpriteRef: () => isE1 ? this.enemySpriteRef : this.enemySprite2,
+        targetX: isE1 ? this.W * 0.58 : this.W * 0.82, targetY: this.H * 0.28
+      })
+    }
+
+    // P2
+    if (this.dblPlayer2?.isAlive() && this.dblP2Target?.isAlive()) {
+      const tgt = this.dblP2Target
+      const isE1 = tgt === this.enemyPokemon
+      actions.push({
+        attacker: this.dblPlayer2, target: tgt, moveName: this.dblP2Move, isPlayer: true,
+        spriteRef: () => this.playerSprite2,
+        targetSpriteRef: () => isE1 ? this.enemySpriteRef : this.enemySprite2,
+        targetX: isE1 ? this.W * 0.58 : this.W * 0.82, targetY: this.H * 0.28
+      })
+    }
+
+    // E1
+    if (this.enemyPokemon.isAlive()) {
+      const tgt = pickEnemyTarget(this.playerPokemon, this.dblPlayer2)
+      if (tgt) {
+        const isP1 = tgt === this.playerPokemon
+        actions.push({
+          attacker: this.enemyPokemon, target: tgt,
+          moveName: this.enemyPokemon.moves[Math.floor(Math.random() * this.enemyPokemon.moves.length)] || 'Tackle',
+          isPlayer: false,
+          spriteRef: () => this.enemySpriteRef,
+          targetSpriteRef: () => isP1 ? this.playerSpriteRef : this.playerSprite2,
+          targetX: isP1 ? this.W * 0.18 : this.W * 0.38, targetY: this.H * 0.55
+        })
       }
-      this.wait(700, () => this.checkEnemyFaintsDouble(() => {
-        const anyEnemyAlive = this.enemyPokemon.isAlive() || (this.dblEnemy2?.isAlive() ?? false)
-        if (!anyEnemyAlive) { this.wait(800, () => this.endBattle(true)); return }
-        this.wait(700, () => this.enemyTurnDouble())
-      }))
-    })
+    }
+
+    // E2
+    if (this.dblEnemy2?.isAlive()) {
+      const tgt = pickEnemyTarget(this.dblPlayer2, this.playerPokemon)
+      if (tgt) {
+        const isP1 = tgt === this.playerPokemon
+        actions.push({
+          attacker: this.dblEnemy2, target: tgt,
+          moveName: this.dblEnemy2.moves[Math.floor(Math.random() * this.dblEnemy2.moves.length)] || 'Tackle',
+          isPlayer: false,
+          spriteRef: () => this.enemySprite2,
+          targetSpriteRef: () => isP1 ? this.playerSpriteRef : this.playerSprite2,
+          targetX: isP1 ? this.W * 0.18 : this.W * 0.38, targetY: this.H * 0.55
+        })
+      }
+    }
+
+    // Sort by speed descending (ties: random)
+    actions.sort((a, b) => b.attacker.speed - a.attacker.speed || Math.random() - 0.5)
+
+    const processNext = (queue: typeof actions) => {
+      if (queue.length === 0) {
+        this.checkEnemyFaintsDouble(() => {
+          const anyEnemyAlive = this.enemyPokemon.isAlive() || (this.dblEnemy2?.isAlive() ?? false)
+          if (!anyEnemyAlive) { this.wait(800, () => this.endBattle(true)); return }
+          this.checkPlayerFaintsDouble(() => {
+            const anyPlayerAlive = this.playerPokemon.isAlive() || (this.dblPlayer2?.isAlive() ?? false)
+            if (!anyPlayerAlive) { this.wait(800, () => this.endBattle(false)); return }
+            const relic = this.playerPokemon.isAlive() ? this.playerPokemon.heldItem : undefined
+            if (relic === 'leftovers') { this.playerPokemon.heal(Math.max(1, Math.floor(this.playerPokemon.maxHp * 0.05))); this.updateHpBars() }
+            this.dblPhase = 'p1'
+            this.dblP1Move = ''; this.dblP1Target = null
+            this.dblP2Move = ''; this.dblP2Target = null
+            this.turnLock = false
+            this.drawActions()
+          })
+        })
+        return
+      }
+
+      const act = queue[0]
+      if (!act.attacker.isAlive() || !act.target.isAlive()) {
+        processNext(queue.slice(1))
+        return
+      }
+
+      const move = getMove(act.moveName)
+      const { damage, effectiveness } = this.calcDamage(act.attacker, act.target, act.moveName, act.isPlayer)
+      act.target.takeDamage(damage)
+      this.log(`¡${act.attacker.name} usó ${move.nameEs}! ${damage} daño a ${act.target.name}. ${getEffectivenessLabel(effectiveness)}`)
+      this.flashSprite(act.targetSpriteRef(), 0xff0000)
+      this.shakeCamera()
+      this.showDamageNumber(act.targetX, act.targetY, damage)
+
+      if (act.isPlayer && damage > 0 && act.attacker.traits.includes('vampirico')) {
+        act.attacker.heal(Math.max(1, Math.floor(damage * 0.15)))
+      }
+      if (act.isPlayer && act.attacker.heldItem === 'life-orb') {
+        act.attacker.takeDamage(Math.max(1, Math.floor(act.attacker.maxHp * 0.1)))
+      }
+      this.updateHpBars()
+      this.wait(800, () => processNext(queue.slice(1)))
+    }
+
+    processNext(actions)
   }
 
   private checkEnemyFaintsDouble(onDone: () => void) {
@@ -652,45 +774,6 @@ export default class BattleScene extends Phaser.Scene {
       if (this.enemySpriteRef) { this.enemySpriteRef.destroy(); this.enemySpriteRef = undefined }
       this.wait(400, () => this.awardXp(fainted, checkE2))
     } else { checkE2() }
-  }
-
-  private enemyTurnDouble() {
-    const attacks: { attacker: Pokemon; target: Pokemon; spriteRef: Phaser.GameObjects.Image | undefined; targetX: number }[] = []
-
-    if (this.enemyPokemon.isAlive()) {
-      const target = this.playerPokemon.isAlive() ? this.playerPokemon : (this.dblPlayer2?.isAlive() ? this.dblPlayer2 : null)
-      if (target) attacks.push({ attacker: this.enemyPokemon, target, spriteRef: target === this.playerPokemon ? this.playerSpriteRef : this.playerSprite2, targetX: target === this.playerPokemon ? this.W * 0.18 : this.W * 0.38 })
-    }
-    if (this.dblEnemy2?.isAlive()) {
-      const target = (this.dblPlayer2?.isAlive() ? this.dblPlayer2 : (this.playerPokemon.isAlive() ? this.playerPokemon : null))
-      if (target) attacks.push({ attacker: this.dblEnemy2, target, spriteRef: target === this.playerPokemon ? this.playerSpriteRef : this.playerSprite2, targetX: target === this.playerPokemon ? this.W * 0.18 : this.W * 0.38 })
-    }
-
-    const processNext = (queue: typeof attacks) => {
-      if (queue.length === 0) {
-        this.checkPlayerFaintsDouble(() => {
-          const anyAlive = this.playerPokemon.isAlive() || (this.dblPlayer2?.isAlive() ?? false)
-          if (!anyAlive) { this.wait(800, () => this.endBattle(false)); return }
-          const relic = this.playerPokemon.heldItem
-          if (relic === 'leftovers') { this.playerPokemon.heal(Math.max(1, Math.floor(this.playerPokemon.maxHp * 0.05))); this.updateHpBars() }
-          this.turnLock = false
-          this.wait(700, () => this.log('¿Qué vas a hacer?'))
-        })
-        return
-      }
-      const { attacker, target, spriteRef, targetX } = queue[0]
-      const moveName = attacker.moves[Math.floor(Math.random() * attacker.moves.length)] || 'Tackle'
-      const move = getMove(moveName)
-      const { damage, effectiveness } = this.calcDamage(attacker, target, moveName)
-      target.takeDamage(damage)
-      this.log(`¡${attacker.name} usó ${move.nameEs}! ${damage} daño a ${target.name}. ${getEffectivenessLabel(effectiveness)}`)
-      this.flashSprite(spriteRef, 0xff0000)
-      this.shakeCamera()
-      this.showDamageNumber(targetX, this.H * 0.55, damage)
-      this.updateHpBars()
-      this.wait(900, () => processNext(queue.slice(1)))
-    }
-    processNext(attacks)
   }
 
   private checkPlayerFaintsDouble(onDone: () => void) {

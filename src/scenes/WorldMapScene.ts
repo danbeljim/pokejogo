@@ -6,6 +6,7 @@ const KANTO_ZONE = { xPct: 0.61, yPct: 0.38, wPct: 0.09, hPct: 0.12 }
 
 export default class WorldMapScene extends Phaser.Scene {
   private onSelectKanto?: () => void
+  private gameMode: string = 'roguelike'
   private pulseGraphics?: Phaser.GameObjects.Graphics
   private pulseTime = 0
 
@@ -13,8 +14,9 @@ export default class WorldMapScene extends Phaser.Scene {
     super('WorldMapScene')
   }
 
-  init(data: { onSelectKanto?: () => void }) {
+  init(data: { onSelectKanto?: () => void; gameMode?: string }) {
     this.onSelectKanto = data?.onSelectKanto
+    this.gameMode = data?.gameMode ?? 'roguelike'
   }
 
   preload() {
@@ -96,10 +98,24 @@ export default class WorldMapScene extends Phaser.Scene {
     zone.on('pointerdown', () => {
       this.cameras.main.flash(300, 255, 215, 0, false)
       this.time.delayedCall(300, () => {
-        this.scene.stop()
-        if (this.onSelectKanto) this.onSelectKanto()
+        if (this.onSelectKanto) {
+          this.scene.stop()
+          this.onSelectKanto()
+        } else {
+          this.registry.set('gameMode', this.gameMode)
+          this.registry.set('trainerClass', null)
+          this.scene.start('StartScene', { regionId: 1, newGame: true, gameMode: this.gameMode })
+        }
       })
     })
+
+    // Back button
+    this.add.text(W * 0.03, H * 0.96, '← Volver', {
+      fontFamily: '"Press Start 2P"', fontSize: `${Math.round(H * 0.016)}px`, color: '#666666'
+    }).setOrigin(0, 1).setInteractive({ useHandCursor: true })
+      .on('pointerover', function(this: Phaser.GameObjects.Text) { this.setColor('#ffffff') })
+      .on('pointerout',  function(this: Phaser.GameObjects.Text) { this.setColor('#666666') })
+      .on('pointerdown', () => this.scene.start('MainMenuScene'))
 
     // Hint text
     this.add.text(cx, H * 0.96, 'Haz clic en una región para comenzar', {

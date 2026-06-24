@@ -82,7 +82,17 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['sprites']\\)\")",
       "PowerShell(ConvertTo-Json *)",
       "Bash(npm list *)",
-      "WebFetch(domain:bulbapedia.bulbagarden.net)"
+      "WebFetch(domain:bulbapedia.bulbagarden.net)",
+      "PowerShell(git *)",
+      "Bash(dir \"C:\\\\app\\\\pokeJogo\\\\public\\\\assets\\\\random\")",
+      "Bash(dir \"C:\\\\app\\\\pokeJogo\\\\public\\\\assets\\\\locations\")",
+      "Bash(dir *)",
+      "Bash(findstr /i \"cientifico\\\\|baya\")",
+      "Bash(findstr /i \"laboratorio\")",
+      "Bash(findstr /i \"gemelas\\\\|dobles\")",
+      "Bash(npx vite *)",
+      "Bash(python3 *)",
+      "Bash(pkill -f \"vite --port 5173\")"
     ]
   }
 }

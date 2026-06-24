@@ -41,6 +41,13 @@ export default class BattleScene extends Phaser.Scene {
   private enemySpriteRef?: Phaser.GameObjects.Image
   private lastPlayerMove: string = ''
   private sashUsed: boolean = false
+  private moveBtnGfx: Phaser.GameObjects.Graphics[] = []
+  private moveBtnZones: Phaser.GameObjects.Zone[] = []
+  private moveBtnIcons: Phaser.GameObjects.Image[] = []
+  private enemyHpPanel?: Phaser.GameObjects.Graphics
+  private playerHpPanel?: Phaser.GameObjects.Graphics
+  private enemy2HpPanel?: Phaser.GameObjects.Graphics
+  private player2HpPanel?: Phaser.GameObjects.Graphics
 
   // Double battle state
   private isDouble: boolean = false
@@ -70,6 +77,20 @@ export default class BattleScene extends Phaser.Scene {
     super('BattleScene')
   }
 
+  preload() {
+    const typeIds: Record<string, number> = {
+      normal: 1, fighting: 2, flying: 3, poison: 4, ground: 5,
+      rock: 6, bug: 7, ghost: 8, fire: 10, water: 11, grass: 12,
+      electric: 13, psychic: 14, ice: 15, dragon: 16
+    }
+    Object.entries(typeIds).forEach(([type, id]) => {
+      const key = `type-icon-${type}`
+      if (!this.textures.exists(key)) {
+        this.load.image(key, `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/${id}.png`)
+      }
+    })
+  }
+
   init(data: BattleData) {
     this.battleData = data
     this.playerIdx = 0
@@ -87,6 +108,13 @@ export default class BattleScene extends Phaser.Scene {
     this.logText = undefined
     this.lastPlayerMove = ''
     this.sashUsed = false
+    this.moveBtnGfx = []
+    this.moveBtnZones = []
+    this.moveBtnIcons = []
+    this.enemyHpPanel = undefined
+    this.playerHpPanel = undefined
+    this.enemy2HpPanel = undefined
+    this.player2HpPanel = undefined
     this.isDouble = data.isDouble ?? false
     this.dblEnemy2 = null
     this.dblPlayer2 = null
@@ -144,31 +172,37 @@ export default class BattleScene extends Phaser.Scene {
     if (this.isDouble) {
       // 2 enemy sprites top
       this.drawSprite(this.W * 0.58, this.H * 0.28, this.enemyPokemon, false)
-      const e1SpriteRef = this.enemySpriteRef  // save before second drawSprite overwrites it
-      this.enemyHpText = this.add.text(this.W * 0.32, this.H * 0.10, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
+      const e1SpriteRef = this.enemySpriteRef
+      this.enemyHpPanel = this.add.graphics()
+      this.enemyHpText = this.add.text(0, 0, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
       this.enemyHpBar = this.add.graphics()
       if (this.dblEnemy2) {
         this.enemySprite2 = this.drawSprite(this.W * 0.82, this.H * 0.28, this.dblEnemy2, false)
-        this.enemySpriteRef = e1SpriteRef  // restore: drawSprite overwrote it with sprite2
-        this.enemy2HpText = this.add.text(this.W * 0.60, this.H * 0.10, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
+        this.enemySpriteRef = e1SpriteRef
+        this.enemy2HpPanel = this.add.graphics()
+        this.enemy2HpText = this.add.text(0, 0, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
         this.enemy2HpBar = this.add.graphics()
       }
       // 2 player sprites bottom
       this.drawSprite(this.W * 0.18, this.H * 0.48, this.playerPokemon, true)
-      this.playerHpText = this.add.text(this.W * 0.02, this.H * 0.62, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
+      this.playerHpPanel = this.add.graphics()
+      this.playerHpText = this.add.text(0, 0, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
       this.playerHpBar = this.add.graphics()
       if (this.dblPlayer2) {
         this.playerSprite2 = this.drawSprite(this.W * 0.38, this.H * 0.48, this.dblPlayer2, true)
-        this.player2HpText = this.add.text(this.W * 0.02, this.H * 0.73, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
+        this.player2HpPanel = this.add.graphics()
+        this.player2HpText = this.add.text(0, 0, '', { font: `${Math.round(this.H * 0.019)}px Arial`, color: '#ffffff' })
         this.player2HpBar = this.add.graphics()
       }
     } else {
-      // Single battle layout (unchanged)
+      // Single battle layout
       this.drawSprite(this.W * 0.72, this.H * 0.28, this.enemyPokemon, false)
-      this.enemyHpText = this.add.text(this.W * 0.38, this.H * 0.12, '', { font: `${Math.round(this.H * 0.022)}px Arial`, color: '#ffffff' })
+      this.enemyHpPanel = this.add.graphics()
+      this.enemyHpText = this.add.text(this.W * 0.385, this.H * 0.083, '', { font: `${Math.round(this.H * 0.022)}px Arial`, color: '#ffffff' })
       this.enemyHpBar = this.add.graphics()
       this.drawSprite(this.W * 0.28, this.H * 0.48, this.playerPokemon, true)
-      this.playerHpText = this.add.text(this.W * 0.05, this.H * 0.64, '', { font: `${Math.round(this.H * 0.022)}px Arial`, color: '#ffffff' })
+      this.playerHpPanel = this.add.graphics()
+      this.playerHpText = this.add.text(this.W * 0.055, this.H * 0.613, '', { font: `${Math.round(this.H * 0.022)}px Arial`, color: '#ffffff' })
       this.playerHpBar = this.add.graphics()
     }
 
@@ -217,99 +251,180 @@ export default class BattleScene extends Phaser.Scene {
     this.enemySpriteRef = undefined
   }
 
+  private hexColor(cssColor: string): number {
+    return parseInt(cssColor.replace('#', ''), 16)
+  }
+
+  private drawHpPanel(
+    gfx: Phaser.GameObjects.Graphics,
+    px: number, py: number, pw: number, ph: number,
+    typeColor: number
+  ) {
+    gfx.clear()
+    gfx.fillStyle(0x080818, 0.88)
+    gfx.fillRoundedRect(px, py, pw, ph, 10)
+    gfx.lineStyle(2, typeColor, 0.9)
+    gfx.strokeRoundedRect(px, py, pw, ph, 10)
+  }
+
+  private drawHpBarInside(
+    barGfx: Phaser.GameObjects.Graphics,
+    bx: number, by: number, bw: number, bh: number,
+    pct: number
+  ) {
+    barGfx.clear()
+    barGfx.fillStyle(0x222233, 1)
+    barGfx.fillRoundedRect(bx, by, bw, bh, 4)
+    const fillColor = pct > 0.5 ? 0x4CAF50 : pct > 0.2 ? 0xFFC107 : 0xF44336
+    barGfx.fillStyle(fillColor, 1)
+    barGfx.fillRoundedRect(bx, by, Math.max(0, bw * pct), bh, 4)
+    // Border
+    barGfx.lineStyle(1, 0x444455, 1)
+    barGfx.strokeRoundedRect(bx, by, bw, bh, 4)
+  }
+
   private updateHpBars() {
     if (!this.playerHpBar || !this.enemyHpBar) return
 
-    const barW = this.W * 0.2
-    const barH = Math.round(this.H * 0.018)
+    const textH = Math.round(this.H * 0.024)
+    const barH = Math.round(this.H * 0.020)
+    const barMargin = 14  // px gap between text and HP bar
 
-    const textH = Math.round(this.H * 0.026)
+    if (!this.isDouble) {
+      // === ENEMY PANEL (single) ===
+      const ePanelX = this.W * 0.365, ePanelY = this.H * 0.070
+      const ePanelW = this.W * 0.305, ePanelH = textH + barMargin + barH + 22
+      const eTypeHex = this.hexColor(TYPE_COLORS[this.enemyPokemon.type])
+      if (this.enemyHpPanel) this.drawHpPanel(this.enemyHpPanel, ePanelX, ePanelY, ePanelW, ePanelH, eTypeHex)
 
-    // Player HP bar — just below playerHpText
-    const pBarX = this.W * 0.05
-    const pBarY = this.H * 0.64 + textH + 4
-    this.playerHpBar.clear()
-    this.playerHpBar.fillStyle(0x333333, 1)
-    this.playerHpBar.fillRect(pBarX, pBarY, barW, barH)
-    const pPct = Math.max(0, this.playerPokemon.hp / this.playerPokemon.maxHp)
-    this.playerHpBar.fillStyle(pPct > 0.5 ? 0x4CAF50 : pPct > 0.2 ? 0xFFC107 : 0xF44336, 1)
-    this.playerHpBar.fillRect(pBarX, pBarY, barW * pPct, barH)
+      const eBarX = ePanelX + 12, eBarY = ePanelY + 12 + textH + barMargin
+      const eBarW = ePanelW - 24
+      const ePct = Math.max(0, this.enemyPokemon.hp / this.enemyPokemon.maxHp)
+      this.drawHpBarInside(this.enemyHpBar, eBarX, eBarY, eBarW, barH, ePct)
 
-    // Enemy HP bar — just below enemyHpText
-    const eBarX = this.W * 0.38
-    const eBarY = this.H * 0.12 + textH + 4
-    this.enemyHpBar.clear()
-    this.enemyHpBar.fillStyle(0x333333, 1)
-    this.enemyHpBar.fillRect(eBarX, eBarY, barW, barH)
-    const ePct = Math.max(0, this.enemyPokemon.hp / this.enemyPokemon.maxHp)
-    this.enemyHpBar.fillStyle(ePct > 0.5 ? 0x4CAF50 : ePct > 0.2 ? 0xFFC107 : 0xF44336, 1)
-    this.enemyHpBar.fillRect(eBarX, eBarY, barW * ePct, barH)
+      // === PLAYER PANEL (single) ===
+      const pPanelX = this.W * 0.035, pPanelY = this.H * 0.600
+      const pPanelW = this.W * 0.305, pPanelH = textH + barMargin + barH + 22
+      const pTypeHex = this.hexColor(TYPE_COLORS[this.playerPokemon.type])
+      if (this.playerHpPanel) this.drawHpPanel(this.playerHpPanel, pPanelX, pPanelY, pPanelW, pPanelH, pTypeHex)
 
-    if (this.playerHpText) {
-      const pType = `[${TYPE_NAMES_ES[this.playerPokemon.type]}]`
-      const pTraits = this.playerPokemon.traits.map(id => getTraitById(id)?.name || id).join(' · ')
-      this.playerHpText.setText(
-        `${this.playerPokemon.name} ${pType} Nv.${this.playerPokemon.level}` +
-        `  HP: ${this.playerPokemon.hp}/${this.playerPokemon.maxHp}` +
-        (pTraits ? `\n${pTraits}` : '')
-      )
-      this.playerHpText.setColor(TYPE_COLORS[this.playerPokemon.type])
-    }
-    if (this.enemyHpText) {
-      const eType = `[${TYPE_NAMES_ES[this.enemyPokemon.type]}]`
-      const eTraits = this.enemyPokemon.traits.map(id => getTraitById(id)?.name || id).join(' · ')
-      this.enemyHpText.setText(
-        `${this.enemyPokemon.name} ${eType} Nv.${this.enemyPokemon.level}` +
-        `  HP: ${this.enemyPokemon.hp}/${this.enemyPokemon.maxHp}` +
-        (eTraits ? `\n${eTraits}` : '')
-      )
-      this.enemyHpText.setColor(TYPE_COLORS[this.enemyPokemon.type])
-    }
+      const pBarX = pPanelX + 12, pBarY = pPanelY + 12 + textH + barMargin
+      const pBarW = pPanelW - 24
+      const pPct = Math.max(0, this.playerPokemon.hp / this.playerPokemon.maxHp)
+      this.drawHpBarInside(this.playerHpBar, pBarX, pBarY, pBarW, barH, pPct)
 
-    // Double battle: update extra HP bars
-    if (this.isDouble) {
-      const barW = this.W * 0.17
-      const barH = Math.round(this.H * 0.014)
-      if (this.dblPlayer2 && this.player2HpText && this.player2HpBar) {
-        const p2Traits = this.dblPlayer2.traits.map(id => getTraitById(id)?.name || id).join(' · ')
-        this.player2HpText.setText(
-          `${this.dblPlayer2.name} [${TYPE_NAMES_ES[this.dblPlayer2.type]}] Nv.${this.dblPlayer2.level}` +
-          `  HP: ${this.dblPlayer2.hp}/${this.dblPlayer2.maxHp}` +
-          (p2Traits ? `\n${p2Traits}` : '')
+      if (this.enemyHpText) {
+        const eType = TYPE_NAMES_ES[this.enemyPokemon.type]
+        const eTraits = this.enemyPokemon.traits.map(id => getTraitById(id)?.name || id).join(' · ')
+        this.enemyHpText.setText(
+          `${this.enemyPokemon.name}  Nv.${this.enemyPokemon.level}  PS: ${this.enemyPokemon.hp}/${this.enemyPokemon.maxHp}` +
+          (eTraits ? `  · ${eTraits}` : '')
         )
-        this.player2HpText.setColor(TYPE_COLORS[this.dblPlayer2.type])
-        const bx = this.W * 0.02, by = this.H * 0.73 + Math.round(this.H * 0.022) + 4
-        this.player2HpBar.clear()
-        this.player2HpBar.fillStyle(0x333333, 1).fillRect(bx, by, barW, barH)
-        const pct = Math.max(0, this.dblPlayer2.hp / this.dblPlayer2.maxHp)
-        this.player2HpBar.fillStyle(pct > 0.5 ? 0x4CAF50 : pct > 0.2 ? 0xFFC107 : 0xF44336, 1).fillRect(bx, by, barW * pct, barH)
+        this.enemyHpText.setColor(TYPE_COLORS[this.enemyPokemon.type])
       }
+      if (this.playerHpText) {
+        const pType = TYPE_NAMES_ES[this.playerPokemon.type]
+        const pTraits = this.playerPokemon.traits.map(id => getTraitById(id)?.name || id).join(' · ')
+        this.playerHpText.setText(
+          `${this.playerPokemon.name}  Nv.${this.playerPokemon.level}  PS: ${this.playerPokemon.hp}/${this.playerPokemon.maxHp}` +
+          (pTraits ? `  · ${pTraits}` : '')
+        )
+        this.playerHpText.setColor(TYPE_COLORS[this.playerPokemon.type])
+      }
+    }
+
+    // Double battle HP bars
+    if (this.isDouble) {
+      const dBarW = this.W * 0.17
+      const dBarH = Math.round(this.H * 0.016)
+      const dTextH = Math.round(this.H * 0.019)
+
+      // Enemy 1 (double)
+      if (this.enemyHpText && this.enemyHpBar) {
+        const ePanelX = this.W * 0.28, ePanelY = this.H * 0.072
+        const ePanelW = this.W * 0.26, ePanelH = dTextH + 12 + dBarH + 16
+        const eTypeHex = this.hexColor(TYPE_COLORS[this.enemyPokemon.type])
+        if (this.enemyHpPanel) this.drawHpPanel(this.enemyHpPanel, ePanelX, ePanelY, ePanelW, ePanelH, eTypeHex)
+        const eTraits = this.enemyPokemon.traits.map(id => getTraitById(id)?.name || id).join(' · ')
+        this.enemyHpText.setPosition(ePanelX + 8, ePanelY + 8)
+        this.enemyHpText.setText(
+          `${this.enemyPokemon.name} Nv.${this.enemyPokemon.level}  PS:${this.enemyPokemon.hp}/${this.enemyPokemon.maxHp}` +
+          (eTraits ? ` · ${eTraits}` : '')
+        )
+        this.enemyHpText.setColor(TYPE_COLORS[this.enemyPokemon.type])
+        const bx = ePanelX + 8, by = ePanelY + 8 + dTextH + 8
+        this.drawHpBarInside(this.enemyHpBar, bx, by, ePanelW - 16, dBarH, Math.max(0, this.enemyPokemon.hp / this.enemyPokemon.maxHp))
+      }
+
+      // Enemy 2 (double)
       if (this.dblEnemy2 && this.enemy2HpText && this.enemy2HpBar) {
+        const e2PanelX = this.W * 0.575, e2PanelY = this.H * 0.072
+        const e2PanelW = this.W * 0.26, e2PanelH = dTextH + 12 + dBarH + 16
+        const e2TypeHex = this.hexColor(TYPE_COLORS[this.dblEnemy2.type])
+        if (this.enemy2HpPanel) this.drawHpPanel(this.enemy2HpPanel, e2PanelX, e2PanelY, e2PanelW, e2PanelH, e2TypeHex)
         const e2Traits = this.dblEnemy2.traits.map(id => getTraitById(id)?.name || id).join(' · ')
+        this.enemy2HpText.setPosition(e2PanelX + 8, e2PanelY + 8)
         this.enemy2HpText.setText(
-          `${this.dblEnemy2.name} [${TYPE_NAMES_ES[this.dblEnemy2.type]}] Nv.${this.dblEnemy2.level}` +
-          `  HP: ${this.dblEnemy2.hp}/${this.dblEnemy2.maxHp}` +
-          (e2Traits ? `\n${e2Traits}` : '')
+          `${this.dblEnemy2.name} Nv.${this.dblEnemy2.level}  PS:${this.dblEnemy2.hp}/${this.dblEnemy2.maxHp}` +
+          (e2Traits ? ` · ${e2Traits}` : '')
         )
         this.enemy2HpText.setColor(TYPE_COLORS[this.dblEnemy2.type])
-        const bx = this.W * 0.60, by = this.H * 0.10 + Math.round(this.H * 0.019) + 4
-        this.enemy2HpBar.clear()
-        this.enemy2HpBar.fillStyle(0x333333, 1).fillRect(bx, by, barW, barH)
-        const pct = Math.max(0, this.dblEnemy2.hp / this.dblEnemy2.maxHp)
-        this.enemy2HpBar.fillStyle(pct > 0.5 ? 0x4CAF50 : pct > 0.2 ? 0xFFC107 : 0xF44336, 1).fillRect(bx, by, barW * pct, barH)
+        const bx = e2PanelX + 8, by = e2PanelY + 8 + dTextH + 8
+        this.drawHpBarInside(this.enemy2HpBar, bx, by, e2PanelW - 16, dBarH, Math.max(0, this.dblEnemy2.hp / this.dblEnemy2.maxHp))
+      }
+
+      // Player 1 (double)
+      if (this.playerHpText && this.playerHpBar) {
+        const pPanelX = this.W * 0.02, pPanelY = this.H * 0.615
+        const pPanelW = this.W * 0.24, pPanelH = dTextH + 12 + dBarH + 16
+        const pTypeHex = this.hexColor(TYPE_COLORS[this.playerPokemon.type])
+        if (this.playerHpPanel) this.drawHpPanel(this.playerHpPanel, pPanelX, pPanelY, pPanelW, pPanelH, pTypeHex)
+        const pTraits = this.playerPokemon.traits.map(id => getTraitById(id)?.name || id).join(' · ')
+        this.playerHpText.setPosition(pPanelX + 8, pPanelY + 8)
+        this.playerHpText.setText(
+          `${this.playerPokemon.name} Nv.${this.playerPokemon.level}  PS:${this.playerPokemon.hp}/${this.playerPokemon.maxHp}` +
+          (pTraits ? ` · ${pTraits}` : '')
+        )
+        this.playerHpText.setColor(TYPE_COLORS[this.playerPokemon.type])
+        const bx = pPanelX + 8, by = pPanelY + 8 + dTextH + 8
+        this.drawHpBarInside(this.playerHpBar, bx, by, pPanelW - 16, dBarH, Math.max(0, this.playerPokemon.hp / this.playerPokemon.maxHp))
+      }
+
+      // Player 2 (double)
+      if (this.dblPlayer2 && this.player2HpText && this.player2HpBar) {
+        const p2PanelX = this.W * 0.28, p2PanelY = this.H * 0.615
+        const p2PanelW = this.W * 0.24, p2PanelH = dTextH + 12 + dBarH + 16
+        const p2TypeHex = this.hexColor(TYPE_COLORS[this.dblPlayer2.type])
+        if (this.player2HpPanel) this.drawHpPanel(this.player2HpPanel, p2PanelX, p2PanelY, p2PanelW, p2PanelH, p2TypeHex)
+        const p2Traits = this.dblPlayer2.traits.map(id => getTraitById(id)?.name || id).join(' · ')
+        this.player2HpText.setPosition(p2PanelX + 8, p2PanelY + 8)
+        this.player2HpText.setText(
+          `${this.dblPlayer2.name} Nv.${this.dblPlayer2.level}  PS:${this.dblPlayer2.hp}/${this.dblPlayer2.maxHp}` +
+          (p2Traits ? ` · ${p2Traits}` : '')
+        )
+        this.player2HpText.setColor(TYPE_COLORS[this.dblPlayer2.type])
+        const bx = p2PanelX + 8, by = p2PanelY + 8 + dTextH + 8
+        this.drawHpBarInside(this.player2HpBar, bx, by, p2PanelW - 16, dBarH, Math.max(0, this.dblPlayer2.hp / this.dblPlayer2.maxHp))
       }
     }
   }
 
-  private drawActions() {
+  private clearMoveButtons() {
     this.actionButtons.forEach(b => b.destroy())
     this.actionButtons = []
+    this.moveBtnGfx.forEach(g => g.destroy())
+    this.moveBtnGfx = []
+    this.moveBtnZones.forEach(z => z.destroy())
+    this.moveBtnZones = []
+    this.moveBtnIcons.forEach(img => img.destroy())
+    this.moveBtnIcons = []
+  }
+
+  private drawActions() {
+    this.clearMoveButtons()
 
     const actor = (this.isDouble && this.dblPhase === 'p2' && this.dblPlayer2) ? this.dblPlayer2 : this.playerPokemon
     const moves = actor.moves
-    const yStart = this.H * 0.78
-    const btnW = this.W * 0.14
-    const startX = this.W * 0.08
 
     if (this.isDouble) {
       const label = this.dblPhase === 'p2'
@@ -318,22 +433,73 @@ export default class BattleScene extends Phaser.Scene {
       this.log(label)
     }
 
+    const btnW = this.W * 0.168
+    const btnH = this.H * 0.092
+    const gap = this.W * 0.012
+    const totalW = moves.length * btnW + (moves.length - 1) * gap
+    const startX = (this.W - totalW) / 2
+    const centerY = this.H * 0.835
+
     moves.forEach((moveName, i) => {
       const move = getMove(moveName)
-      const color = TYPE_COLORS[move.type]
-      const x = startX + i * (btnW + this.W * 0.015)
-      const btn = this.add.text(x, yStart, `${move.nameEs}\n[${TYPE_NAMES_ES[move.type]}] P:${move.power}`, {
-        font: `${Math.round(this.H * 0.018)}px Arial`,
-        color,
-        backgroundColor: '#222',
-        padding: { x: 14, y: 8 },
-        align: 'center'
-      }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true })
+      const colorStr = TYPE_COLORS[move.type]
+      const colorHex = this.hexColor(colorStr)
+      const bx = startX + i * (btnW + gap)
+      const by = centerY - btnH / 2
 
-      btn.on('pointerdown', () => this.playerAttack(moveName))
-      btn.on('pointerover', () => btn.setColor('#ffffff'))
-      btn.on('pointerout', () => btn.setColor(color))
-      this.actionButtons.push(btn)
+      // Card background
+      const gfx = this.add.graphics()
+      const drawCard = (hovered: boolean) => {
+        gfx.clear()
+        gfx.fillStyle(hovered ? colorHex : 0x0a0a1e, hovered ? 0.28 : 0.92)
+        gfx.fillRoundedRect(bx, by, btnW, btnH, 10)
+        gfx.lineStyle(hovered ? 3 : 2, colorHex, hovered ? 1 : 0.85)
+        gfx.strokeRoundedRect(bx, by, btnW, btnH, 10)
+      }
+      drawCard(false)
+      this.moveBtnGfx.push(gfx)
+
+      // Type icon from PokeAPI (top-left of card)
+      const iconKey = `type-icon-${move.type}`
+      if (this.textures.exists(iconKey)) {
+        const icon = this.add.image(bx + 10, by + 10, iconKey)
+        icon.setOrigin(0, 0).setDisplaySize(54, 20)
+        this.moveBtnIcons.push(icon)
+      } else {
+        // Fallback: colored type pill text
+        const pill = this.add.text(bx + 8, by + 8, TYPE_NAMES_ES[move.type], {
+          font: `bold ${Math.round(this.H * 0.014)}px Arial`,
+          color: colorStr,
+          backgroundColor: '#111133',
+          padding: { x: 5, y: 2 }
+        }).setOrigin(0, 0)
+        this.actionButtons.push(pill)
+      }
+
+      // Move name + power
+      const nameSize = Math.round(this.H * 0.018)
+      const labelText = this.add.text(bx + btnW / 2, by + btnH * 0.62,
+        `${move.nameEs}\nP: ${move.power}`, {
+        font: `bold ${nameSize}px Arial`,
+        color: colorStr,
+        align: 'center',
+        lineSpacing: 2
+      }).setOrigin(0.5)
+      this.actionButtons.push(labelText)
+
+      // Invisible zone — full card area, handles clicks & hover
+      const zone = this.add.zone(bx + btnW / 2, centerY, btnW, btnH)
+        .setInteractive({ useHandCursor: true })
+      zone.on('pointerdown', () => this.playerAttack(moveName))
+      zone.on('pointerover', () => {
+        drawCard(true)
+        labelText.setColor('#ffffff')
+      })
+      zone.on('pointerout', () => {
+        drawCard(false)
+        labelText.setColor(colorStr)
+      })
+      this.moveBtnZones.push(zone)
     })
   }
 

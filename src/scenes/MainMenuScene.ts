@@ -62,15 +62,21 @@ export default class MainMenuScene extends Phaser.Scene {
 
   private showRegionMenu() {
     this.pokedexMenu = new PokedexMenu(
-      (regionId) => this.selectRegion(regionId),
-      () => this.selectRoguelike()
+      () => this.selectAdventure(),
+      () => this.selectCardMode()
     )
   }
 
-  private selectRoguelike() {
+  private selectAdventure() {
     if (this.pokedexMenu) { this.pokedexMenu.remove(); this.pokedexMenu = null }
-    this.registry.set('gameMode', 'roguelike')
-    this.scene.start('StartScene', { regionId: 1, newGame: true, gameMode: 'roguelike' })
+    this.registry.set('gameMode', 'normal')
+    this.registry.set('trainerClass', null)
+    this.scene.start('WorldMapScene', { gameMode: 'normal' })
+  }
+
+  private selectCardMode() {
+    if (this.pokedexMenu) { this.pokedexMenu.remove(); this.pokedexMenu = null }
+    this.scene.start('CardMenuScene')
   }
 
   private cleanUp() {
@@ -83,10 +89,4 @@ export default class MainMenuScene extends Phaser.Scene {
     if (this.scene.isActive('WorldMapScene')) this.scene.stop('WorldMapScene')
   }
 
-  private selectRegion(regionId: number) {
-    if (this.pokedexMenu) { this.pokedexMenu.remove(); this.pokedexMenu = null }
-    this.registry.set('gameMode', 'normal')
-    this.registry.set('trainerClass', null)
-    this.scene.start('StartScene', { regionId, newGame: true, gameMode: 'normal' })
-  }
 }

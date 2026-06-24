@@ -16,6 +16,17 @@ import ProfessorScene from './scenes/ProfessorScene'
 import EvoPickerScene from './scenes/EvoPickerScene'
 import WorldMapScene from './scenes/WorldMapScene'
 import MerchantScene from './scenes/MerchantScene'
+import CardMenuScene from './scenes/card/CardMenuScene'
+import CardMapScene from './scenes/card/CardMapScene'
+import CardActTransitionScene from './scenes/card/CardActTransitionScene'
+import SafariMapScene from './scenes/card/SafariMapScene'
+import CardBattleScene from './scenes/card/CardBattleScene'
+import CardRewardScene from './scenes/card/CardRewardScene'
+import CardShopScene from './scenes/card/CardShopScene'
+import CardRestScene from './scenes/card/CardRestScene'
+import CardEventScene from './scenes/card/CardEventScene'
+import CardDeathScene from './scenes/card/CardDeathScene'
+import CardDeckEditorScene from './scenes/card/CardDeckEditorScene'
 
 const isMobile = window.innerWidth < 1024 || window.innerHeight < 600
 export const GAME_W = isMobile ? 800 : 1600
@@ -37,7 +48,8 @@ const config: Phaser.Types.Core.GameConfig = {
   render: {
     pixelArt: true,
     antialias: false,
-    powerPreference: 'high-performance'
+    powerPreference: 'high-performance',
+    willReadFrequently: true
   },
   fps: { target: 60, forceSetTimeOut: false },
   input: {
@@ -50,7 +62,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [MainMenuScene, WorldMapScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene, BerryTreeScene, DojoScene, ProfessorScene, EvoPickerScene, MerchantScene]
+  scene: [MainMenuScene, WorldMapScene, StartScene, GameScene, BattleScene, ItemPickerScene, BagScene, TeamOrderScene, CaptureScene, RandomPickerScene, BerryTreeScene, DojoScene, ProfessorScene, EvoPickerScene, MerchantScene, CardMenuScene, CardMapScene, SafariMapScene, CardActTransitionScene, CardBattleScene, CardRewardScene, CardShopScene, CardRestScene, CardEventScene, CardDeathScene, CardDeckEditorScene]
 }
 
 new Phaser.Game(config)
